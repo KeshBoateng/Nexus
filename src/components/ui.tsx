@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { Trash2, X } from 'lucide-react';
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
 
 /** Small set of primitives. Everything references semantic tokens from index.css. */
@@ -58,5 +60,24 @@ export function Notice({ tone = 'muted', children }: { tone?: 'muted' | 'danger'
     <p role={tone === 'danger' ? 'alert' : 'status'} className={`text-sm ${color}`}>
       {children}
     </p>
+  );
+}
+
+/** Two-step delete: first tap arms, second tap deletes. Avoids browser confirm() dialogs. */
+export function ConfirmDelete({ onConfirm, label }: { onConfirm: () => void; label: string }) {
+  const [armed, setArmed] = useState(false);
+  return armed ? (
+    <span className="inline-flex items-center gap-1">
+      <button className="rounded-lg px-2 py-1 text-xs font-medium text-danger hover:bg-surface-raised" onClick={onConfirm}>
+        Delete
+      </button>
+      <button className="rounded-lg p-1 text-text-faint hover:text-text" onClick={() => setArmed(false)} aria-label="Cancel">
+        <X className="size-4" aria-hidden />
+      </button>
+    </span>
+  ) : (
+    <button className="rounded-lg p-1.5 text-text-faint hover:text-danger" onClick={() => setArmed(true)} aria-label={label}>
+      <Trash2 className="size-4" aria-hidden />
+    </button>
   );
 }

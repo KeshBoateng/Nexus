@@ -1,5 +1,8 @@
 import { Link } from 'react-router';
-import { ChevronRight, GraduationCap, Wallet, type LucideIcon } from 'lucide-react';
+import { ChevronRight, GraduationCap, Target, Wallet, type LucideIcon } from 'lucide-react';
+import { useGoals } from '../goals/api';
+import { HabitRow } from '../goals/HabitRow';
+import { useRunner } from '../../lib/useRunner';
 import { DESTINATIONS } from '../../app/navigation';
 import { useProfile } from '../profile/ProfileProvider';
 import { Panel } from '../../components/ui';
@@ -65,6 +68,7 @@ export function HomePage() {
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
       <TodayPanel tz={tz} />
+      <HabitsPanel tz={tz} />
       <MoneyPanel tz={tz} currency={profile?.default_currency ?? 'GHS'} />
 
       {!name && (
@@ -158,6 +162,7 @@ function ModuleCard({ to, icon: Icon, title, sub, figureLabel, figure }: { to: s
 export function MyLifePage() {
   const { data } = useAcademics();
   const { data: fin } = useFinances();
+  const { data: goals } = useGoals();
   const { profile } = useProfile();
   const currency = profile?.default_currency ?? 'GHS';
   const cgpa = data ? formatGpa(computeGpa(data.courses, data.bands).gpa) : '…';
@@ -187,10 +192,49 @@ export function MyLifePage() {
         figureLabel="Net worth"
         figure={worth}
       />
-      <Panel>
-        <Coming items={[{ name: 'Goals and habits', phase: 2 }]} />
-      </Panel>
+      <ModuleCard
+        to="/life/goals"
+        icon={Target}
+        title="Goals & habits"
+        sub={goals ? `${goals.habits.filter((h) => !h.archived_at).length} habits` : 'Goals, milestones, habits'}
+        figureLabel="Active goals"
+        figure={goals ? String(goals.goals.filter((g) => g.status === 'active').length) : '…'}
+      />
     </div>
+  );
+}
+
+/** Today's habits with one-tap check-off. */
+function HabitsPanel({ tz }: { tz: string }) {
+  const { data, reload } = useGoals();
+  const { run } = useRunner(reload);
+  if (!data) return null;
+  const habits = data.habits.filter((h) => !h.archived_at);
+  if (habits.length === 0) return null;
+  const today = todayIn(tz);
+  const done = habits.filter((h) => data.checkins.some((c) => c.habit_id === h.id && c.on_date === today)).length;
+  return (
+    <Panel
+      title="Today's habits"
+      action={
+        <span className="tabular text-sm text-text-muted">
+          {done}/{habits.length}
+        </span>
+      }
+    >
+      <div className="divide-y divide-border">
+        {habits.map((h) => (
+          <HabitRow
+            key={h.id}
+            habit={h}
+            dates={new Set(data.checkins.filter((c) => c.habit_id === h.id).map((c) => c.on_date))}
+            today={today}
+            run={run}
+            compact
+          />
+        ))}
+      </div>
+    </Panel>
   );
 }
 

@@ -1,7 +1,8 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router';
-import { ChevronLeft, Check, Pencil, Plus, Trash2, X } from 'lucide-react';
-import { Button, Field, Notice, Panel, Select, TextInput } from '../../components/ui';
+import { ChevronLeft, Check, Pencil, Plus } from 'lucide-react';
+import { Button, ConfirmDelete, Field, Notice, Panel, Select, TextInput } from '../../components/ui';
+import { useRunner, type Run } from '../../lib/useRunner';
 import { computeGpa, formatGpa, resolveGrade, validateBands } from '../../lib/gpa';
 import { describeDue, isoToLocalInput, localInputToIso } from '../../lib/dates';
 import { useProfile } from '../profile/ProfileProvider';
@@ -21,27 +22,7 @@ import {
 } from './api';
 import { useAcademics } from './useAcademics';
 
-type Run = (fn: () => Promise<void>) => Promise<boolean>;
 
-function useRunner(reload: () => Promise<void>) {
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const run: Run = async (fn) => {
-    setBusy(true);
-    setError(null);
-    try {
-      await fn();
-      await reload();
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
-      return false;
-    } finally {
-      setBusy(false);
-    }
-  };
-  return { run, error, busy };
-}
 
 const numOrNull = (v: string): number | null => (v.trim() === '' ? null : Number(v));
 
@@ -98,23 +79,6 @@ function Stat({ label, value, emphasis }: { label: string; value: string; emphas
   );
 }
 
-function ConfirmDelete({ onConfirm, label }: { onConfirm: () => void; label: string }) {
-  const [armed, setArmed] = useState(false);
-  return armed ? (
-    <span className="inline-flex items-center gap-1">
-      <button className="rounded-lg px-2 py-1 text-xs font-medium text-danger hover:bg-surface-raised" onClick={onConfirm}>
-        Delete
-      </button>
-      <button className="rounded-lg p-1 text-text-faint hover:text-text" onClick={() => setArmed(false)} aria-label="Cancel">
-        <X className="size-4" aria-hidden />
-      </button>
-    </span>
-  ) : (
-    <button className="rounded-lg p-1.5 text-text-faint hover:text-danger" onClick={() => setArmed(true)} aria-label={label}>
-      <Trash2 className="size-4" aria-hidden />
-    </button>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Deadlines

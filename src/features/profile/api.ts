@@ -81,7 +81,7 @@ export async function updatePreferences(userId: string, patch: PreferencesUpdate
 /** Everything the user owns, as one JSON document. Extended as modules are added. */
 export async function exportMyData(userId: string): Promise<Blob> {
   const sb = requireSupabase();
-  const [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, goals] = await Promise.all([
+  const [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, savingsGoals, goals, milestones, habits, checkins] = await Promise.all([
     sb.from('profiles').select('*').eq('id', userId).single(),
     sb.from('user_preferences').select('*').eq('user_id', userId).single(),
     sb.from('audit_logs').select('*').eq('user_id', userId).order('created_at'),
@@ -93,12 +93,16 @@ export async function exportMyData(userId: string): Promise<Blob> {
     sb.from('transactions').select('*').order('occurred_on'),
     sb.from('budgets').select('*').order('category'),
     sb.from('savings_goals').select('*').order('created_at'),
+    sb.from('goals').select('*').order('created_at'),
+    sb.from('goal_milestones').select('*').order('created_at'),
+    sb.from('habits').select('*').order('created_at'),
+    sb.from('habit_checkins').select('*').order('on_date'),
   ]);
-  for (const r of [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, goals])
-    if (r.error) throw r.error;
+  const all = [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, savingsGoals, goals, milestones, habits, checkins];
+  for (const r of all) if (r.error) throw r.error;
   const doc = {
     format: 'nexus-export',
-    version: 3,
+    version: 4,
     money_note: 'Amounts ending in _minor are integer minor units (e.g. pesewas for GHS).',
     exported_at: new Date().toISOString(),
     data: {
@@ -111,7 +115,11 @@ export async function exportMyData(userId: string): Promise<Blob> {
       financial_accounts: accounts.data,
       transactions: transactions.data,
       budgets: budgets.data,
-      savings_goals: goals.data,
+      savings_goals: savingsGoals.data,
+      goals: goals.data,
+      goal_milestones: milestones.data,
+      habits: habits.data,
+      habit_checkins: checkins.data,
       audit_logs: audit.data,
     },
   };

@@ -6,6 +6,7 @@ import { ProfileProvider } from '../features/profile/ProfileProvider';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { AcademicsPage } from '../features/academics/AcademicsPage';
 import { FinancesPage } from '../features/finances/FinancesPage';
+import { GoalsPage } from '../features/goals/GoalsPage';
 import {
   DevelopmentPage,
   HomePage,
@@ -36,6 +37,7 @@ function Gate() {
           <Route path="life" element={<MyLifePage />} />
           <Route path="life/academics" element={<AcademicsPage />} />
           <Route path="life/finances" element={<FinancesPage />} />
+          <Route path="life/goals" element={<GoalsPage />} />
           <Route path="development" element={<DevelopmentPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="intelligence" element={<IntelligencePage />} />

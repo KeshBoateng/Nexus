@@ -1,3 +1,4 @@
+import { courseStudy } from '../../lib/courseStatus';
 import { useCallback, useEffect, useState } from 'react';
 import { cached } from '../../lib/offline';
 import { z } from 'zod';
@@ -57,7 +58,7 @@ export async function engineInput(today: string, currency: string): Promise<Engi
     sb().from('personal_memories').select('id', { count: 'exact', head: true }).eq('kind', 'hypothesis'),
     sb().from('study_progress').select('material_id, section, status, updated_at').order('updated_at', { ascending: false }).limit(500),
     sb().from('study_lessons').select('material_id, sections_total'),
-    sb().from('study_materials').select('id, title'),
+    sb().from('study_materials').select('id, title, course_id'),
   ]);
   if (guesses.error) throw guesses.error;
 
@@ -91,7 +92,16 @@ export async function engineInput(today: string, currency: string): Promise<Engi
       course: courseLabel.get(a.course_id) ?? 'Course',
       due_on: a.due_at ? a.due_at.slice(0, 10) : null,
       done: Boolean(a.completed_at),
+      kind: a.kind,
+      courseId: a.course_id,
     })),
+    courseStudy: Object.fromEntries(
+      courseStudy(
+        (studyMats.data ?? []) as { id: string; course_id: string | null }[],
+        (studyProg.data ?? []) as { material_id: string; status: string }[],
+        (studyLessons.data ?? []) as { material_id: string; sections_total: number }[],
+      ),
+    ),
     budgetAlerts,
     finance: { hasAccounts: fin.accounts.length > 0, lastRecordedOn: fin.transactions[0]?.occurred_on ?? null },
     habits: goals.habits

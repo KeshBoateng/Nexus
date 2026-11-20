@@ -46,9 +46,16 @@ describe('AcademicsPage', () => {
     const stat = (label: string) => screen.getByText(label).nextElementSibling?.textContent;
     expect(stat('CGPA')).toBe('3.50');
     expect(stat('Credits graded')).toBe('6');
-    expect(stat('In progress')).toBe('2');
+    expect(stat('Credits in progress')).toBe('2');
     const prog = screen.getByText('Programming II').closest('div')!.parentElement!;
     expect(within(prog).getByText('A')).toBeInTheDocument();
+    // Completed vs taking now, and the link into the Study Library per course
+    expect(within(prog).getByText('Completed')).toBeInTheDocument();
+    const ugrc = screen.getByText('Critical Thinking').closest('div')!.parentElement!;
+    expect(within(ugrc).getByText('Taking now')).toBeInTheDocument();
+    expect(within(ugrc).getByRole('link', { name: /No study files yet/ })).toHaveAttribute('href', `/life/study?course=${uuid(4)}`);
+    expect(screen.getByText(/1 taking now · 2 completed/)).toBeInTheDocument();
+    expect(screen.getByText('Current')).toBeInTheDocument();
     expect(screen.getByText('Essay 1')).toBeInTheDocument();
     expect(screen.getByText(/^Tomorrow/)).toBeInTheDocument();
   });

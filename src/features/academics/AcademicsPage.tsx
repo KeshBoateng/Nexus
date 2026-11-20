@@ -1,6 +1,9 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router';
-import { ChevronLeft, Check, Pencil, Plus } from 'lucide-react';
+import { BookOpen, ChevronLeft, Check, Pencil, Plus } from 'lucide-react';
+import { cached } from '../../lib/offline';
+import { todayIn } from '../../lib/dates';
+import { COURSE_STATUS_LABEL, TERM_STATUS_LABEL, courseStatus, courseStudy, statusSummary, studyLine, termStatus, type CourseStatus, type CourseStudy, type TermStatus } from '../../lib/courseStatus';
 import { Button, ConfirmDelete, Field, Notice, Panel, Select, TextInput } from '../../components/ui';
 import { useRunner, type Run } from '../../lib/useRunner';
 import { computeGpa, formatGpa, resolveGrade, validateBands } from '../../lib/gpa';
@@ -8,6 +11,7 @@ import { describeDue, isoToLocalInput, localInputToIso } from '../../lib/dates';
 import { useProfile } from '../profile/ProfileProvider';
 import {
   ASSESSMENT_KINDS,
+  fetchCourseStudyRows,
   remove,
   saveAssessment,
   saveBand,
@@ -47,21 +51,63 @@ export function AcademicsPage() {
   );
 }
 
+/** Study Library files + Learn progress per course; empty if the library can't be read (offline etc.). */
+function useCourseStudy(): Map<string, CourseStudy> {
+  const [study, setStudy] = useState<Map<string, CourseStudy>>(new Map());
+  useEffect(() => {
+    let active = true;
+    cached('course-study', fetchCourseStudyRows)
+      .then((r) => active && setStudy(courseStudy(r.materials, r.progress, r.lessons)))
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+  return study;
+}
+
+const STATUS_TONE: Record<CourseStatus | TermStatus, string> = {
+  completed: 'bg-success/15 text-success',
+  taking: 'bg-accent/15 text-accent',
+  current: 'bg-accent/15 text-accent',
+  awaiting: 'border border-dashed border-text-faint text-text-muted',
+  upcoming: 'bg-surface-raised text-text-muted',
+  empty: 'bg-surface-raised text-text-faint',
+};
+
+function StatusBadge({ status, label }: { status: CourseStatus | TermStatus; label: string }) {
+  return <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_TONE[status]}`}>{label}</span>;
+}
+
 function Content({ data, run, busy }: { data: AcademicsData; run: Run; busy: boolean }) {
   const overall = computeGpa(data.courses, data.bands);
+  const { profile } = useProfile();
+  const today = todayIn(profile?.timezone ?? 'Africa/Accra');
+  const study = useCourseStudy();
+  const terms = new Map(data.terms.map((t) => [t.id, t]));
+  const counts = { completed: 0, taking: 0, awaiting: 0, upcoming: 0 };
+  for (const c of data.courses) {
+    const t = terms.get(c.term_id);
+    if (t) counts[courseStatus(c, t, today)]++;
+  }
 
   return (
     <>
       <section className="grid grid-cols-3 gap-3">
         <Stat label="CGPA" value={formatGpa(overall.gpa)} emphasis />
         <Stat label="Credits graded" value={String(overall.gradedCredits)} />
-        <Stat label="In progress" value={String(overall.inProgressCredits)} />
+        <Stat label="Credits in progress" value={String(overall.inProgressCredits)} />
       </section>
+      {data.courses.length > 0 && (
+        <p className="-mt-3 text-sm text-text-muted">
+          {statusSummary(counts)}. Courses with a final mark count as completed; enter results when they come out.
+        </p>
+      )}
 
       <Deadlines data={data} run={run} busy={busy} />
 
       {data.terms.map((t) => (
-        <TermPanel key={t.id} term={t} data={data} run={run} busy={busy} />
+        <TermPanel key={t.id} term={t} data={data} run={run} busy={busy} today={today} study={study} />
       ))}
 
       <AddTerm run={run} busy={busy} first={data.terms.length === 0} />
@@ -207,9 +253,11 @@ function AssessmentForm({ courses, run, busy, onDone }: { courses: Course[]; run
 // Terms and courses
 // ---------------------------------------------------------------------------
 
-function TermPanel({ term, data, run, busy }: { term: Term; data: AcademicsData; run: Run; busy: boolean }) {
+function TermPanel({ term, data, run, busy, today, study }: { term: Term; data: AcademicsData; run: Run; busy: boolean; today: string; study: Map<string, CourseStudy> }) {
   const courses = data.courses.filter((c) => c.term_id === term.id);
   const result = computeGpa(courses, data.bands);
+  const statuses = courses.map((c) => courseStatus(c, term, today));
+  const tStatus = termStatus(statuses, term, today);
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
@@ -220,6 +268,7 @@ function TermPanel({ term, data, run, busy }: { term: Term; data: AcademicsData;
       action={
         !renaming && (
           <div className="flex items-center gap-3">
+            <StatusBadge status={tStatus} label={TERM_STATUS_LABEL[tStatus]} />
             <span className="text-sm text-text-muted">
               GPA <span className="tabular font-semibold text-text">{formatGpa(result.gpa)}</span>
             </span>
@@ -244,11 +293,11 @@ function TermPanel({ term, data, run, busy }: { term: Term; data: AcademicsData;
             <span className="w-8 text-right">Gr</span>
             <span className="w-14" />
           </div>
-          {courses.map((c) =>
+          {courses.map((c, i) =>
             editingId === c.id ? (
               <CourseForm key={c.id} termId={term.id} course={c} bands={data.bands} run={run} busy={busy} onDone={() => setEditingId(null)} />
             ) : (
-              <CourseRow key={c.id} c={c} bands={data.bands} onEdit={() => setEditingId(c.id)} run={run} />
+              <CourseRow key={c.id} c={c} bands={data.bands} status={statuses[i]!} study={study.get(c.id)} onEdit={() => setEditingId(c.id)} run={run} />
             ),
           )}
         </div>
@@ -265,13 +314,20 @@ function TermPanel({ term, data, run, busy }: { term: Term; data: AcademicsData;
   );
 }
 
-function CourseRow({ c, bands, onEdit, run }: { c: Course; bands: Band[]; onEdit: () => void; run: Run }) {
+function CourseRow({ c, bands, status, study, onEdit, run }: { c: Course; bands: Band[]; status: CourseStatus; study?: CourseStudy; onEdit: () => void; run: Run }) {
   const grade = resolveGrade(c, bands);
   return (
     <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-x-3 rounded-lg px-1 py-2 text-[15px] hover:bg-surface-raised">
       <div className="min-w-0">
         <p className="truncate">{c.title}</p>
-        {c.code && <p className="text-xs text-text-faint">{c.code}</p>}
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <StatusBadge status={status} label={COURSE_STATUS_LABEL[status]} />
+          {c.code && <span className="text-xs text-text-faint">{c.code}</span>}
+        </div>
+        <Link to={`/life/study?course=${c.id}`} className="mt-1 inline-flex items-center gap-1 text-xs text-text-muted hover:text-accent">
+          <BookOpen className="size-3" aria-hidden />
+          {studyLine(study)}
+        </Link>
       </div>
       <span className="tabular w-10 text-right">{c.credit_hours}</span>
       <span className="tabular w-12 text-right text-text-muted">{c.final_mark ?? '—'}</span>

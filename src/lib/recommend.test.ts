@@ -152,3 +152,25 @@ describe('feedbackHistory', () => {
     expect(fb.byKey['goal-milestones:g']).toEqual({ dismissed: '2026-11-20' });
   });
 });
+
+describe('exam prep rule', () => {
+  it('links an upcoming exam to the course’s unfinished study sections', () => {
+    const c = candidates({
+      ...empty,
+      assessments: [
+        { id: 'e1', title: 'Midsem', course: 'DCIT 201', due_on: '2026-11-25', done: false, kind: 'midterm', courseId: 'c1' },
+        { id: 'e2', title: 'Essay', course: 'DCIT 201', due_on: '2026-11-24', done: false, kind: 'assignment', courseId: 'c1' },
+        { id: 'e3', title: 'Final', course: 'MATH 223', due_on: '2026-12-15', done: false, kind: 'exam', courseId: 'c2' },
+        { id: 'e4', title: 'Quiz', course: 'STAT 111', due_on: '2026-11-21', done: false, kind: 'quiz', courseId: 'c3' },
+      ],
+      courseStudy: {
+        c1: { files: 2, understood: 9, total: 14, review: 2 },
+        c2: { files: 1, understood: 0, total: 5, review: 0 },
+        c3: { files: 1, understood: 6, total: 6, review: 0 }, // fully learned
+      },
+    }).filter((x) => x.rule_type === 'study.exam_prep');
+    expect(c).toHaveLength(1);
+    expect(c[0]).toMatchObject({ title: 'Prepare for Midsem (DCIT 201) — in 5 days', action: 'Start with the 2 sections you marked for review in Learn mode.' });
+    expect(c[0]!.why).toBe('9 of 14 sections understood across 2 files.');
+  });
+});

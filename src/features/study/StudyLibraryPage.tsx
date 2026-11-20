@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { BookOpen, ChevronDown, ChevronLeft, ExternalLink, GraduationCap, Search, Sparkles, Upload } from 'lucide-react';
 import { LearnView } from './LearnView';
 import { Button, ConfirmDelete, Notice, Panel, Select, TextInput } from '../../components/ui';
@@ -17,6 +17,8 @@ export function StudyLibraryPage() {
   const [queue, setQueue] = useState<{ name: string; step: UploadStep; error?: string }[]>([]);
   const [q, setQ] = useState('');
   const [hits, setHits] = useState<string[] | null>(null);
+  const [params, setParams] = useSearchParams();
+  const courseFilter = params.get('course');
 
   const reload = useCallback(async () => {
     try {
@@ -63,7 +65,8 @@ export function StudyLibraryPage() {
 
   const groups = useMemo(() => {
     if (!data) return [];
-    const list = hits ? hits.map((id) => data.materials.find((m) => m.id === id)).filter((m): m is Material => Boolean(m)) : data.materials;
+    const all = hits ? hits.map((id) => data.materials.find((m) => m.id === id)).filter((m): m is Material => Boolean(m)) : data.materials;
+    const list = courseFilter ? all.filter((m) => m.course_id === courseFilter) : all;
     const byCourse = new Map<string, Material[]>();
     for (const m of list) {
       const k = m.course_id ?? 'unsorted';
@@ -75,7 +78,7 @@ export function StudyLibraryPage() {
       return c ? (c.code ? `${c.code} — ${c.title}` : c.title) : 'Course';
     };
     return [...byCourse.entries()].map(([k, items]) => ({ key: k, label: label(k), items })).sort((a, b) => (a.key === 'unsorted' ? 1 : b.key === 'unsorted' ? -1 : a.label.localeCompare(b.label)));
-  }, [data, hits]);
+  }, [data, hits, courseFilter]);
 
   return (
     <div className="space-y-6">
@@ -125,6 +128,22 @@ export function StudyLibraryPage() {
         </p>
       )}
 
+      {data && courseFilter && (
+        <p className="-mt-3 flex flex-wrap items-center gap-x-2 text-sm text-text-muted">
+          <span>
+            Showing only <span className="font-medium text-text">{courseName(data, courseFilter)}</span>
+          </span>
+          <button className="text-accent hover:underline" onClick={() => setParams({})}>
+            Show all
+          </button>
+          <Link to="/life/academics" className="text-accent hover:underline">
+            Back to Academics
+          </Link>
+        </p>
+      )}
+      {data && courseFilter && groups.length === 0 && (
+        <p className="text-[15px] text-text-muted">No files linked to this course yet. Upload above — files whose name or text mentions the course code are linked automatically, or set the course on any file.</p>
+      )}
       {data && data.materials.length === 0 && <p className="text-[15px] text-text-muted">Nothing here yet.</p>}
       {data &&
         groups.map((g) => (
@@ -138,6 +157,11 @@ export function StudyLibraryPage() {
         ))}
     </div>
   );
+}
+
+function courseName(data: StudyData, id: string): string {
+  const c = data.courses.find((x) => x.id === id);
+  return c ? (c.code ? `${c.code} — ${c.title}` : c.title) : 'this course';
 }
 
 function AiConsent({ data, onChange }: { data: StudyData; onChange: () => Promise<void> }) {

@@ -142,3 +142,18 @@ export async function saveBand(id: string, input: z.input<typeof BandInput>) {
 export async function remove(table: 'academic_terms' | 'courses' | 'assessments', id: string) {
   check(await requireSupabase().from(table).delete().eq('id', id));
 }
+
+/** Study Library files and Learn progress, rolled up per course (for the Academics page). */
+export async function fetchCourseStudyRows() {
+  const sb = requireSupabase();
+  const [mats, prog, lessons] = await Promise.all([
+    sb.from('study_materials').select('id, course_id'),
+    sb.from('study_progress').select('material_id, status'),
+    sb.from('study_lessons').select('material_id, sections_total'),
+  ]);
+  return {
+    materials: check(mats) as { id: string; course_id: string | null }[],
+    progress: check(prog) as { material_id: string; status: string }[],
+    lessons: check(lessons) as { material_id: string; sections_total: number }[],
+  };
+}

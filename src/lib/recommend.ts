@@ -31,7 +31,9 @@ export interface Candidate {
 
 export interface EngineInput {
   today: string;
-  assessments: { id: string; title: string; course: string; due_on: string | null; done: boolean }[];
+  assessments: { id: string; title: string; course: string; due_on: string | null; done: boolean; kind?: string; courseId?: string }[];
+  /** Study Library + Learn progress per course id (files, sections understood / known, sections to review). */
+  courseStudy?: Record<string, { files: number; understood: number; total: number; review: number }>;
   budgetAlerts: { category: string; status: 'warn' | 'over'; percent: number; text: string }[];
   finance: { hasAccounts: boolean; lastRecordedOn: string | null };
   habits: { id: string; name: string; doneToday: boolean; streak: number }[];
@@ -61,6 +63,8 @@ const daysBetween = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00
 // ---------------------------------------------------------------------------
 // Rules
 // ---------------------------------------------------------------------------
+
+const EXAM_KINDS = new Set(['exam', 'midterm', 'quiz']);
 
 export function candidates(i: EngineInput): Candidate[] {
   const out: Candidate[] = [];
@@ -215,6 +219,37 @@ export function candidates(i: EngineInput): Candidate[] {
       due_on: null,
       essential: step.id === 'overdue' || step.id === 'deadline-scope',
       base: step.priority === 'high' ? 80 : step.priority === 'medium' ? 60 : 40,
+    });
+  }
+
+  // Exam prep: a test within a week, and the course's study files still have sections to learn or review.
+  for (const a of i.assessments) {
+    if (a.done || !a.due_on || !a.courseId || !EXAM_KINDS.has(a.kind ?? '')) continue;
+    const d = daysBetween(i.today, a.due_on);
+    const s = i.courseStudy?.[a.courseId];
+    if (d < 0 || d > 7 || !s || s.files === 0) continue;
+    const left = s.total > 0 ? s.total - s.understood : null;
+    if (left === 0 && s.review === 0) continue;
+    const when = d === 0 ? 'today' : `in ${d} day${d === 1 ? '' : 's'}`;
+    out.push({
+      rule_type: 'study.exam_prep',
+      rule_key: `exam-prep:${a.id}:${i.today}`,
+      category: 'academic',
+      kind: 'preventive',
+      title: `Prepare for ${a.title} (${a.course}) — ${when}`,
+      action:
+        s.review > 0
+          ? `Start with the ${s.review} section${s.review === 1 ? '' : 's'} you marked for review in Learn mode.`
+          : left !== null
+            ? `Work through the ${left} section${left === 1 ? '' : 's'} not yet understood in your ${a.course} files.`
+            : `Open your ${a.course} files in Learn mode and start section 1.`,
+      why: left !== null ? `${s.understood} of ${s.total} sections understood across ${s.files} file${s.files === 1 ? '' : 's'}.` : `You have ${s.files} ${a.course} file${s.files === 1 ? '' : 's'} not started in Learn mode.`,
+      benefit: 'Targeting what you have not mastered yet is the fastest way to raise your score.',
+      evidence: [`${a.course} · ${a.title} · ${a.kind} · ${a.due_on}`, `${s.files} study file${s.files === 1 ? '' : 's'} linked to ${a.course}`],
+      est_minutes: 45,
+      due_on: a.due_on,
+      essential: false,
+      base: 80 - d * 3,
     });
   }
 

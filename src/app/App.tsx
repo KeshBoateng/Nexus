@@ -24,6 +24,8 @@ const IntelligencePage = lazy(() => import('../features/intelligence/Intelligenc
 
 const DevelopmentPage = lazy(() => import('../features/development/DevelopmentPage').then((m) => ({ default: m.DevelopmentPage })));
 
+const NotificationsPage = lazy(() => import('../features/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })));
+
 const page = (el: React.ReactNode) => <Suspense fallback={<p className="text-text-muted">Loading…</p>}>{el}</Suspense>;
 
 function Gate() {
@@ -50,6 +52,7 @@ function Gate() {
           <Route path="projects" element={page(<ProjectsListPage />)} />
           <Route path="projects/:id" element={page(<ProjectDetailPage />)} />
           <Route path="intelligence" element={page(<IntelligencePage />)} />
+          <Route path="notifications" element={page(<NotificationsPage />)} />
           <Route path="settings" element={page(<SettingsPage />)} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

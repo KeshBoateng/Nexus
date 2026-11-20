@@ -12,6 +12,11 @@ export default defineConfig({
       // New versions activate on their own. ('prompt' needs an in-app update button, which
       // didn't exist — users stayed on the first cached version. Fixed 2026-11-20, see K-11.)
       registerType: 'autoUpdate',
+      // Custom worker (src/sw.ts) for push handling; precache manifest is injected at build.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: { globPatterns: ['**/*.{js,css,html,svg,woff2}'] },
       includeAssets: ['icon.svg'],
       manifest: {
         name: 'NEXUS',
@@ -23,15 +28,6 @@ export default defineConfig({
         orientation: 'portrait',
         start_url: '/',
         icons: [{ src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
-      },
-      workbox: {
-        // App shell only. Supabase API responses are never cached by the service worker:
-        // authenticated data caching is handled deliberately in a later phase (IndexedDB).
-        globPatterns: ['**/*.{js,css,html,svg,woff2}'],
-        navigateFallback: '/index.html',
-        skipWaiting: true,
-        clientsClaim: true,
-        cleanupOutdatedCaches: true,
       },
     }),
   ],

@@ -22,6 +22,7 @@ export const PreferencesSchema = z.object({
   quiet_hours_start: timeString.nullable(),
   quiet_hours_end: timeString.nullable(),
   ai_enabled: z.boolean(),
+  accountability_mode: z.boolean().default(false),
 });
 export type Preferences = z.infer<typeof PreferencesSchema>;
 
@@ -59,7 +60,7 @@ export async function fetchProfile(userId: string): Promise<Profile> {
 export async function fetchPreferences(userId: string): Promise<Preferences> {
   const { data, error } = await requireSupabase()
     .from('user_preferences')
-    .select('user_id, theme, briefing_time, quiet_hours_start, quiet_hours_end, ai_enabled')
+    .select('user_id, theme, briefing_time, quiet_hours_start, quiet_hours_end, ai_enabled, accountability_mode')
     .eq('user_id', userId)
     .single();
   if (error) throw error;
@@ -119,12 +120,16 @@ export async function exportMyData(userId: string): Promise<Blob> {
     sb.from('learning_resources').select('*').order('created_at'),
     sb.from('learning_progress').select('*').order('created_at'),
   ]);
-  const aiRequests = await sb.from('ai_requests').select('*').order('created_at');
-  const all = [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, savingsGoals, goals, milestones, habits, checkins, projects, members, tasks, pMilestones, meetings, memories, aiPermissions, recs, recEvents, recFeedback, briefings, skills, skillEvidence, learningResources, learningProgress, aiRequests];
+  const [aiRequests, notifications, notificationPrefs] = await Promise.all([
+    sb.from('ai_requests').select('*').order('created_at'),
+    sb.from('notifications').select('*').order('created_at'),
+    sb.from('notification_preferences').select('*').order('category'),
+  ]);
+  const all = [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, savingsGoals, goals, milestones, habits, checkins, projects, members, tasks, pMilestones, meetings, memories, aiPermissions, recs, recEvents, recFeedback, briefings, skills, skillEvidence, learningResources, learningProgress, aiRequests, notifications, notificationPrefs];
   for (const r of all) if (r.error) throw r.error;
   const doc = {
     format: 'nexus-export',
-    version: 9,
+    version: 10,
     money_note: 'Amounts ending in _minor are integer minor units (e.g. pesewas for GHS).',
     exported_at: new Date().toISOString(),
     data: {
@@ -158,6 +163,8 @@ export async function exportMyData(userId: string): Promise<Blob> {
       learning_resources: learningResources.data,
       learning_progress: learningProgress.data,
       ai_requests: aiRequests.data,
+      notifications: notifications.data,
+      notification_preferences: notificationPrefs.data,
       audit_logs: audit.data,
     },
   };

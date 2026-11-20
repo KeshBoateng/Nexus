@@ -1,6 +1,6 @@
 # Status: NEXUS
 
-**Updated:** 2026-11-20 · **Phase:** 4 complete — AI assistant verified end to end; Phase 5 (Notifications) next
+**Updated:** 2026-11-20 · **Phase:** 5 (Notifications) deployed — awaiting push test on the Owner's phone
 
 **Live:** https://nexus-theta-peach.vercel.app · **Supabase:** `nexus` (`obccfnhcnnlairctgomt`, eu-west-1)
 
@@ -21,11 +21,12 @@
 - **Recommendations (Phase 4a):** migration 0008 (recommendations, events, feedback, daily_briefings). Deterministic rules across all modules; feedback learning (not useful −15, very useful +10, already know hides 14 d, not now 3 d); essential obligations floor 70. Daily briefing (3–5, max 2 per category) at top of Home with why/evidence, Done/On it/Not now/Applied and ratings. History in Intelligence. Export v7.
 - **Development & learning (Phase 4b):** migration 0009 (skills, skill_evidence, learning_resources, learning_progress). Proficiency estimated from evidence only (single item ≤ Beginner). Catalog of 33 free resources verified live 2026-11-20. Adaptive plans skip intro once Developing. Daily learning step in the briefing. Development page. Export v8.
 - **AI assistant (Phase 4c, optional):** Edge Function `ai-chat` (v2, provider-neutral, defaults Groq `openai/gpt-oss-120b`). Server enforces sign-in, AI switch, per-category permissions (same filter file as the app preview, test-checked), 50 msgs/day; conversation not stored; key only in Edge secrets. Migration 0010 `ai_requests` log. "Ask NEXUS" panel in Intelligence. Export v9. Gemini free tier rejected (free-tier prompts may be used to improve Google products / human review).
+- **Notifications (Phase 5):** migrations 0011 (notifications, notification_preferences, push_subscriptions, app_secrets, accountability_mode, `nexus_budgets_over` server-only) and 0012 (pg_cron every 15 min → `notify`). Edge Function `notify` (run / public-key / test): deterministic reminders (deadlines 24 h + overdue, briefing time, evening habits, my project tasks, budgets, accountability daily + Sunday weekly), dedupe, completion-based suppression, quiet hours, category prefs, Web Push via VAPID keys generated inside Supabase. Custom service worker (push + click → in-app path only). Bell with unread count, Notifications page (read/snooze/dismiss/history), Settings panel (enable push, test, per-category, Accountability Mode). Export v10.
 
 ## Evidence
 | Check | Result |
 |---|---|
-| `npx vitest run` | 27 files, **246/246 passed** (incl. 114 database/RLS, 26 GPA, 13 finance, 11 habits, 14 project rules, 4 AI gate, 10 recommendation engine, 8 proficiency/catalog, page renders) |
+| `npx vitest run` | 29 files, **273/273 passed** (incl. 114 database/RLS, 26 GPA, 13 finance, 11 habits, 14 project rules, 4 AI gate, 10 recommendation engine, 8 proficiency/catalog, page renders) |
 | View-leak mutation | Removing `security_invoker` from `account_balances` → isolation test failed ✔ (restored) |
 | Hosted finances check (rolled back) | momo=38750, savings=20000, sees own 3 accounts only, cross-currency transfer denied, write into other user's account denied |
 | Mutation checks | Owner policy → `using (true)`: isolation test failed ✔; migration 0002 removed: 3 privilege tests failed ✔ |
@@ -35,10 +36,13 @@
 | Hosted academics check (rolled back) | own_course=1, attach to another user's term=denied, sees only own terms=1 |
 | Auto-deploy of `0b1eabd` | Production Ready in ~34 s; `/life/academics` → 200 |
 | AI assistant (2026-11-20 16:52 UTC) | Owner's message → function 200, Groq `openai/gpt-oss-120b` replied; `ai_requests` row status ok. Earlier 503 traced to secret saved as `API_key` instead of `AI_API_KEY` (fixed by Owner). |
+| notify job (2026-11-20 17:04 UTC) | triggered in-DB → HTTP 200, 1 user processed, no errors; VAPID keys + cron token present (values never read). Missing/wrong cron token → 403; unauthenticated key request → 401. |
 | Auto-deploy of `604c2bd` | Production Ready; live bundle contains Finances UI; `/life/finances` → 200 |
 | Production URL | `/`, `/settings`, manifest, `sw.js`, icon → 200; security headers present; sign-in screen renders (env vars baked in) |
 
 ## Not verified
+- Push delivery to the Owner's Android phone (needs Settings → Enable push → Send test). `web-push` under Deno's Node compatibility is ASSUMED to work until that test passes.
+- "Repeatedly postponed tasks" (spec §10) not detected — due-date changes aren't tracked yet.
 - Signed-in screens (Home, Academics, Settings) in a real browser on production — the agent can't sign in as the Owner; Academics is covered by a render test only.
 - Mark bands below A (5-mark steps) — ASSUMED from "go on from there"; editable in Academics → Grading scale.
 - PWA install on Android; SVG-only icon may need PNGs.

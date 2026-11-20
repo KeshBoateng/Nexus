@@ -55,6 +55,9 @@ Postgres on Supabase. One `public` schema with table groups by prefix-free domai
 
 | `20261120000010_ai_requests.sql` | ai_requests (append-only log: model, categories shared, status, sizes — no message content) | via ai-chat function |
 
-All ten are applied to the hosted project `nexus` (ref `obccfnhcnnlairctgomt`, eu-west-1) on 2026-11-20.
+| `20261120000011_notifications.sql` | notifications (server-created; user may read/snooze/dismiss), notification_preferences, push_subscriptions, app_secrets (no grants: service role only), accountability_mode, nexus_budgets_over() (server-only) | `supabase/tests/notifications.test.ts` |
+| `20261120000012_notify_schedule.sql` | pg_cron + pg_net; cron token generated in-DB; job every 15 min (hosted only, skipped in PGlite) | live run checked |
+
+All twelve are applied to the hosted project `nexus` (ref `obccfnhcnnlairctgomt`, eu-west-1) on 2026-11-20.
 
 **Standard added:** every new function must `revoke execute … from public, anon, authenticated` unless it is meant to be called via RPC.

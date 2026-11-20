@@ -11,6 +11,7 @@ import {
 import { requireSupabase } from '../../lib/supabase';
 import { applyTheme, type ThemePreference } from '../../lib/theme';
 import { Button, Field, Notice, Panel, Select, TextInput } from '../../components/ui';
+import { NotificationSettings } from '../notifications/NotificationSettings';
 
 const CURRENCIES = ['GHS', 'USD', 'EUR', 'GBP', 'NGN', 'KES', 'ZAR'];
 
@@ -37,6 +38,7 @@ export function SettingsPage() {
       {error && <Notice tone="danger">{error}</Notice>}
       {profile && <ProfileForm key={profile.id} profile={profile} onSaved={reload} />}
       {preferences && <PreferencesForm key={preferences.user_id} prefs={preferences} onSaved={reload} />}
+      <NotificationSettings />
       {session && <DataPanel userId={session.user.id} />}
       <Panel>
         <Button variant="danger" onClick={() => requireSupabase().auth.signOut()}>

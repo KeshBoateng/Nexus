@@ -20,3 +20,17 @@ describe('ai-chat Edge Function', () => {
     expect(src).not.toMatch(/gsk_[A-Za-z0-9]{10,}/); // no Groq key committed
   });
 });
+
+describe('notify Edge Function', () => {
+  it('uses exactly the same reminder rules as the app', () => {
+    const app = readFileSync(join(process.cwd(), 'src/lib/reminders.ts'), 'utf8');
+    const fn = readFileSync(join(process.cwd(), 'supabase/functions/notify/reminders.ts'), 'utf8');
+    expect(fn).toBe(app);
+  });
+  it('requires the cron token for runs and a signed-in user otherwise', () => {
+    const src = readFileSync(join(process.cwd(), 'supabase/functions/notify/index.ts'), 'utf8');
+    expect(src).toContain("secret(sb, 'cron_token')");
+    expect(src).toContain("if (!expected || diff !== 0) return json({ error: 'Forbidden' }, 403, origin);");
+    expect(src).toContain("if (!userId) return json({ error: 'Sign in required' }, 401, origin);");
+  });
+});

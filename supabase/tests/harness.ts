@@ -41,7 +41,10 @@ export async function createTestDb(): Promise<PGlite> {
   await db.exec(SUPABASE_STUB);
   const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort();
   for (const file of files) {
-    await db.exec(readFileSync(join(MIGRATIONS_DIR, file), 'utf8'));
+    const sql = readFileSync(join(MIGRATIONS_DIR, file), 'utf8');
+    // Hosted-only migrations (pg_cron, pg_net) are marked and skipped in the stand-in.
+    if (sql.startsWith('-- pglite:skip')) continue;
+    await db.exec(sql);
   }
   return db;
 }

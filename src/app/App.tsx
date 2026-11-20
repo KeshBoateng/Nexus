@@ -5,7 +5,6 @@ import { SignInPage } from '../features/auth/SignInPage';
 import { NewPasswordPage } from '../features/auth/NewPasswordPage';
 import { ProfileProvider } from '../features/profile/ProfileProvider';
 import {
-  DevelopmentPage,
   HomePage,
   MyLifePage,
 } from '../features/destinations/pages';
@@ -22,6 +21,8 @@ const ProjectsListPage = lazy(() => import('../features/projects/ProjectsPages')
 const ProjectDetailPage = lazy(() => import('../features/projects/ProjectsPages').then((m) => ({ default: m.ProjectDetailPage })));
 
 const IntelligencePage = lazy(() => import('../features/intelligence/IntelligencePage').then((m) => ({ default: m.IntelligencePage })));
+
+const DevelopmentPage = lazy(() => import('../features/development/DevelopmentPage').then((m) => ({ default: m.DevelopmentPage })));
 
 const page = (el: React.ReactNode) => <Suspense fallback={<p className="text-text-muted">Loading…</p>}>{el}</Suspense>;
 
@@ -45,7 +46,7 @@ function Gate() {
           <Route path="life/academics" element={page(<AcademicsPage />)} />
           <Route path="life/finances" element={page(<FinancesPage />)} />
           <Route path="life/goals" element={page(<GoalsPage />)} />
-          <Route path="development" element={<DevelopmentPage />} />
+          <Route path="development" element={page(<DevelopmentPage />)} />
           <Route path="projects" element={page(<ProjectsListPage />)} />
           <Route path="projects/:id" element={page(<ProjectDetailPage />)} />
           <Route path="intelligence" element={page(<IntelligencePage />)} />

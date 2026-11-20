@@ -32,19 +32,6 @@ function PageHeader({ path, title }: { path: string; title?: string }) {
   );
 }
 
-function Coming({ items }: { items: { name: string; phase: number }[] }) {
-  return (
-    <ul className="divide-y divide-border">
-      {items.map((i) => (
-        <li key={i.name} className="flex items-center justify-between py-3 text-[15px]">
-          <span>{i.name}</span>
-          <span className="text-xs text-text-faint tabular">Phase {i.phase}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function greeting(hour: number): string {
   if (hour < 12) return 'Good morning';
   if (hour < 17) return 'Good afternoon';
@@ -336,22 +323,5 @@ function MoneyPanel({ tz, currency }: { tz: string; currency: string }) {
         </ul>
       )}
     </Panel>
-  );
-}
-
-export function DevelopmentPage() {
-  return (
-    <>
-      <PageHeader path="/development" />
-      <Panel>
-        <Coming
-          items={[
-            { name: 'Technical track', phase: 4 },
-            { name: 'Leadership and management track', phase: 4 },
-            { name: 'Entrepreneurship and business track', phase: 4 },
-          ]}
-        />
-      </Panel>
-    </>
   );
 }

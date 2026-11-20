@@ -39,6 +39,8 @@ export interface EngineInput {
   projectSteps: { projectId: string; projectName: string; step: NextStep }[];
   pendingGuesses: number;
   hasCourses: boolean;
+  /** Skills below target, with the next verified resource in their adaptive plan. */
+  learning?: { skill: string; estimate: number; target: number; next: { id: string; title: string; source: string; objective: string; exercise: string; inProgress: boolean } | null }[];
 }
 
 export interface FeedbackHistory {
@@ -211,6 +213,27 @@ export function candidates(i: EngineInput): Candidate[] {
       due_on: null,
       essential: step.id === 'overdue' || step.id === 'deadline-scope',
       base: step.priority === 'high' ? 80 : step.priority === 'medium' ? 60 : 40,
+    });
+  }
+
+  // One learning step a day: the skill furthest below its target that has a next resource.
+  const LEVELS = ['None', 'Beginner', 'Developing', 'Proficient', 'Advanced'];
+  const gap = (i.learning ?? []).filter((l) => l.next && l.estimate < l.target).sort((a, b) => b.target - b.estimate - (a.target - a.estimate) || a.skill.localeCompare(b.skill))[0];
+  if (gap?.next) {
+    out.push({
+      rule_type: 'development.learn',
+      rule_key: `learn:${gap.next.id}:${i.today}`,
+      category: 'development',
+      kind: 'developmental',
+      title: `${gap.next.inProgress ? 'Continue' : 'Start'}: ${gap.next.title}`,
+      action: `${gap.next.objective} Then: ${gap.next.exercise}`,
+      why: `${gap.skill} is at ${LEVELS[gap.estimate]} (from your evidence); your target is ${LEVELS[gap.target]}.`,
+      benefit: 'Practical work you can record as evidence moves the estimate — reading alone does not.',
+      evidence: [`${gap.skill}: ${LEVELS[gap.estimate]} → ${LEVELS[gap.target]}`, `${gap.next.source} · link verified`],
+      est_minutes: 45,
+      due_on: null,
+      essential: false,
+      base: 45,
     });
   }
 

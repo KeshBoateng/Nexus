@@ -10,6 +10,7 @@ import { fetchAcademics } from '../academics/api';
 import { fetchFinances } from '../finances/api';
 import { fetchGoals } from '../goals/api';
 import { fetchProjects, stateOf } from '../projects/api';
+import { fetchDev, learningState } from '../development/api';
 
 export const RecSchema = z.object({
   id: z.uuid(),
@@ -46,11 +47,12 @@ const sb = () => requireSupabase();
 
 /** Collect the engine's inputs from every module (deterministic; no AI). */
 export async function engineInput(today: string, currency: string): Promise<EngineInput> {
-  const [acad, fin, goals, proj, guesses] = await Promise.all([
+  const [acad, fin, goals, proj, dev, guesses] = await Promise.all([
     fetchAcademics(),
     fetchFinances(),
     fetchGoals(),
     fetchProjects(),
+    fetchDev(),
     sb().from('personal_memories').select('id', { count: 'exact', head: true }).eq('kind', 'hypothesis'),
   ]);
   if (guesses.error) throw guesses.error;
@@ -110,6 +112,7 @@ export async function engineInput(today: string, currency: string): Promise<Engi
       .flatMap((p) => nextSteps(stateOf(proj, p), today, 2).map((step) => ({ projectId: p.id, projectName: p.name, step }))),
     pendingGuesses: guesses.count ?? 0,
     hasCourses: acad.courses.length > 0,
+    learning: learningState(dev),
   };
 }
 

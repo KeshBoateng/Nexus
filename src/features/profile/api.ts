@@ -113,11 +113,17 @@ export async function exportMyData(userId: string): Promise<Blob> {
     sb.from('recommendation_feedback').select('*').order('created_at'),
     sb.from('daily_briefings').select('*').order('on_date'),
   ]);
-  const all = [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, savingsGoals, goals, milestones, habits, checkins, projects, members, tasks, pMilestones, meetings, memories, aiPermissions, recs, recEvents, recFeedback, briefings];
+  const [skills, skillEvidence, learningResources, learningProgress] = await Promise.all([
+    sb.from('skills').select('*').order('created_at'),
+    sb.from('skill_evidence').select('*').order('occurred_on'),
+    sb.from('learning_resources').select('*').order('created_at'),
+    sb.from('learning_progress').select('*').order('created_at'),
+  ]);
+  const all = [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, savingsGoals, goals, milestones, habits, checkins, projects, members, tasks, pMilestones, meetings, memories, aiPermissions, recs, recEvents, recFeedback, briefings, skills, skillEvidence, learningResources, learningProgress];
   for (const r of all) if (r.error) throw r.error;
   const doc = {
     format: 'nexus-export',
-    version: 7,
+    version: 8,
     money_note: 'Amounts ending in _minor are integer minor units (e.g. pesewas for GHS).',
     exported_at: new Date().toISOString(),
     data: {
@@ -146,6 +152,10 @@ export async function exportMyData(userId: string): Promise<Blob> {
       recommendation_events: recEvents.data,
       recommendation_feedback: recFeedback.data,
       daily_briefings: briefings.data,
+      skills: skills.data,
+      skill_evidence: skillEvidence.data,
+      learning_resources: learningResources.data,
+      learning_progress: learningProgress.data,
       audit_logs: audit.data,
     },
   };

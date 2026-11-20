@@ -44,6 +44,22 @@ describe('candidates', () => {
   });
 });
 
+describe('learning rule', () => {
+  it('recommends the next verified resource for the skill furthest below target', () => {
+    const c = candidates({
+      ...empty,
+      learning: [
+        { skill: 'Networking', estimate: 2, target: 3, next: { id: 'netacad', title: 'Cisco Networking Academy', source: 'Cisco', objective: 'Learn networking.', exercise: 'Build two VLANs.', inProgress: true } },
+        { skill: 'Sales', estimate: 0, target: 3, next: { id: 'mom-test', title: 'The Mom Test', source: 'Rob Fitzpatrick', objective: 'Ask good questions.', exercise: 'Interview 3 people.', inProgress: false } },
+        { skill: 'Delegation', estimate: 3, target: 3, next: null },
+      ],
+    }).filter((x) => x.rule_type === 'development.learn');
+    expect(c).toHaveLength(1);
+    expect(c[0]).toMatchObject({ title: 'Start: The Mom Test', category: 'development' });
+    expect(c[0]!.why).toBe('Sales is at None (from your evidence); your target is Proficient.');
+  });
+});
+
 describe('score — learning from feedback', () => {
   const c = candidates({ ...empty, goals: [{ id: 'g', title: 'Learn Go', milestonesTotal: 0, overdueMilestones: [] }] })[0]!;
 

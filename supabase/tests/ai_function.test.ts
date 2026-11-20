@@ -34,3 +34,18 @@ describe('notify Edge Function', () => {
     expect(src).toContain("if (!userId) return json({ error: 'Sign in required' }, 401, origin);");
   });
 });
+
+describe('study-analyze Edge Function', () => {
+  it('uses the same chunking helpers as the app', () => {
+    const app = readFileSync(join(process.cwd(), 'src/lib/studyText.ts'), 'utf8');
+    const fn = readFileSync(join(process.cwd(), 'supabase/functions/study-analyze/studyText.ts'), 'utf8');
+    expect(fn).toBe(app);
+  });
+  it('requires the AI switch and the study permission, and shares the daily cap', () => {
+    const src = readFileSync(join(process.cwd(), 'supabase/functions/study-analyze/index.ts'), 'utf8');
+    expect(src).toContain("if (!prefs.data?.ai_enabled || !perm.data?.allowed)");
+    expect(src).toContain('DAILY_LIMIT = 50');
+    expect(src).toContain("categories: ['study']");
+    expect(src).not.toMatch(/personal_memories|financial_accounts|profiles/); // only the document goes out
+  });
+});

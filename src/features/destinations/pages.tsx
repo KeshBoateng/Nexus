@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { ChevronRight, GraduationCap, Target, Wallet, type LucideIcon } from 'lucide-react';
+import { BookOpen, ChevronRight, GraduationCap, Target, Wallet, type LucideIcon } from 'lucide-react';
 import { useGoals } from '../goals/api';
 import { HabitRow } from '../goals/HabitRow';
 import { useRunner } from '../../lib/useRunner';
@@ -179,6 +179,7 @@ export function MyLifePage() {
         figureLabel="CGPA"
         figure={cgpa}
       />
+      <ModuleCard to="/life/study" icon={BookOpen} title="Study Library" sub="Notes, slides and readings by course" figureLabel="" figure="" />
       <ModuleCard
         to="/life/finances"
         icon={Wallet}

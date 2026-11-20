@@ -125,16 +125,19 @@ export async function exportMyData(userId: string): Promise<Blob> {
     sb.from('notifications').select('*').order('created_at'),
     sb.from('notification_preferences').select('*').order('category'),
   ]);
-  const [weeklyReviews, opportunities] = await Promise.all([
+  const [weeklyReviews, opportunities, studyMaterials, studyAnalyses] = await Promise.all([
     sb.from('weekly_reviews').select('*').order('week_key'),
     sb.from('opportunities').select('*').order('created_at'),
+    sb.from('study_materials').select('id, course_id, title, topic, file_path, mime, size_bytes, page_count, status, extracted_text, created_at').order('created_at'),
+    sb.from('study_analyses').select('*').order('created_at'),
   ]);
-  const all = [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, savingsGoals, goals, milestones, habits, checkins, projects, members, tasks, pMilestones, meetings, memories, aiPermissions, recs, recEvents, recFeedback, briefings, skills, skillEvidence, learningResources, learningProgress, aiRequests, notifications, notificationPrefs, weeklyReviews, opportunities];
+  const all = [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, savingsGoals, goals, milestones, habits, checkins, projects, members, tasks, pMilestones, meetings, memories, aiPermissions, recs, recEvents, recFeedback, briefings, skills, skillEvidence, learningResources, learningProgress, aiRequests, notifications, notificationPrefs, weeklyReviews, opportunities, studyMaterials, studyAnalyses];
   for (const r of all) if (r.error) throw r.error;
   const doc = {
     format: 'nexus-export',
-    version: 11,
+    version: 12,
     money_note: 'Amounts ending in _minor are integer minor units (e.g. pesewas for GHS).',
+    files_note: 'Study files themselves stay in your private storage; this export includes their records and extracted text.',
     exported_at: new Date().toISOString(),
     data: {
       profile: profile.data,
@@ -171,6 +174,8 @@ export async function exportMyData(userId: string): Promise<Blob> {
       notification_preferences: notificationPrefs.data,
       weekly_reviews: weeklyReviews.data,
       opportunities: opportunities.data,
+      study_materials: studyMaterials.data,
+      study_analyses: studyAnalyses.data,
       audit_logs: audit.data,
     },
   };

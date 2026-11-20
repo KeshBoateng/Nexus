@@ -60,6 +60,9 @@ Postgres on Supabase. One `public` schema with table groups by prefix-free domai
 
 | `20261120000013_reviews_opportunities.sql` | weekly_reviews (one per ISO week), opportunities (https links; link_status/link_checked_at server-only; URL edit resets check) | `supabase/tests/reviews_opportunities.test.ts` |
 
-All thirteen are applied to the hosted project `nexus` (ref `obccfnhcnnlairctgomt`, eu-west-1) on 2026-11-20.
+| `20261120000014_study_library.sql` | study_materials (path must be in own folder; text/path immutable; tsvector search), study_analyses (one per material), ai_permissions + 'study' | `supabase/tests/study.test.ts` |
+| `20261120000015_study_storage.sql` | private `study` bucket + owner-folder storage policies (hosted only) | live probes |
+
+All fifteen are applied to the hosted project `nexus` (ref `obccfnhcnnlairctgomt`, eu-west-1) on 2026-11-20.
 
 **Standard added:** every new function must `revoke execute … from public, anon, authenticated` unless it is meant to be called via RPC.

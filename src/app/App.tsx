@@ -29,6 +29,8 @@ const NotificationsPage = lazy(() => import('../features/notifications/Notificat
 const WeeklyReviewPage = lazy(() => import('../features/review/ReviewPages').then((m) => ({ default: m.WeeklyReviewPage })));
 const RadarPage = lazy(() => import('../features/radar/RadarPage').then((m) => ({ default: m.RadarPage })));
 
+const StudyLibraryPage = lazy(() => import('../features/study/StudyLibraryPage').then((m) => ({ default: m.StudyLibraryPage })));
+
 const page = (el: React.ReactNode) => <Suspense fallback={<p className="text-text-muted">Loading…</p>}>{el}</Suspense>;
 
 function Gate() {
@@ -50,6 +52,7 @@ function Gate() {
           <Route path="life" element={<MyLifePage />} />
           <Route path="life/academics" element={page(<AcademicsPage />)} />
           <Route path="life/finances" element={page(<FinancesPage />)} />
+          <Route path="life/study" element={page(<StudyLibraryPage />)} />
           <Route path="life/goals" element={page(<GoalsPage />)} />
           <Route path="development" element={page(<DevelopmentPage />)} />
           <Route path="projects" element={page(<ProjectsListPage />)} />

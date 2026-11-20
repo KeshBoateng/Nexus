@@ -26,10 +26,12 @@
 - **Install (2026-11-20):** one-tap install (Chrome `beforeinstallprompt`), iPhone Add-to-Home-Screen steps, PNG icons 192/512/maskable/apple-touch (`scripts/icons.mjs`).
 - **Phase 6:** migration 0013 (weekly_reviews, opportunities; link_status server-only, reset on URL change). Weekly review page (records snapshot + reflection); Insights panel (GPA by term, monthly spend, habit consistency); Opportunity Radar (tracker + relevance to skills/goals + `verify-link` Edge Function with SSRF protections + 7-day/1-day deadline reminders via `notify` v2; weekly note links to /review); offline viewing (IndexedDB per user, banner, writes need connection, cleared on sign-out). Export v11.
 
+- **Study Library (2026-11-20):** migrations 0014 (study_materials with full-text search, study_analyses, 'study' AI permission) and 0015 (private `study` bucket, per-user folder policies, 25 MB, document types only). Text extracted on-device (pdf.js, mammoth, JSZip; lazy-loaded). Auto-filing by course code (filename any case; body text needs capitalised code seen twice). Edge Function `study-analyze`: consent-checked, document text only, chunked for long files (≤5 parts), shares 50/day cap, JSON validated. UI at My Life → Study Library: upload many files, search, course/topic edit, open file (5-min signed URL), study pack (summary, concepts, flashcards, practice questions). Export v12 (records + extracted text; files stay in storage).
+
 ## Evidence
 | Check | Result |
 |---|---|
-| `npx vitest run` | 33 files, **286/286 passed** (incl. 114 database/RLS, 26 GPA, 13 finance, 11 habits, 14 project rules, 4 AI gate, 10 recommendation engine, 8 proficiency/catalog, page renders) |
+| `npx vitest run` | 36 files, **309/309 passed** (incl. 114 database/RLS, 26 GPA, 13 finance, 11 habits, 14 project rules, 4 AI gate, 10 recommendation engine, 8 proficiency/catalog, page renders) |
 | View-leak mutation | Removing `security_invoker` from `account_balances` → isolation test failed ✔ (restored) |
 | Hosted finances check (rolled back) | momo=38750, savings=20000, sees own 3 accounts only, cross-currency transfer denied, write into other user's account denied |
 | Mutation checks | Owner policy → `using (true)`: isolation test failed ✔; migration 0002 removed: 3 privilege tests failed ✔ |
@@ -45,6 +47,8 @@
 | Production URL | `/`, `/settings`, manifest, `sw.js`, icon → 200; security headers present; sign-in screen renders (env vars baked in) |
 
 ## Not verified
+- Study Library end to end on the Owner's phone: real PDF/Word/PowerPoint upload, extraction, study pack generation (Groq JSON mode with `openai/gpt-oss-120b` ASSUMED supported). Probed: analyze unauthenticated → 401; bucket not publicly readable; anonymous listing empty.
+- Scanned (image-only) PDFs are stored but not readable — no OCR.
 - Offline mode on a real phone in airplane mode; Weekly review, Radar, Insights signed-in in a real browser (render-tested logic only).
 - `verify-link` against a real opportunity (deployed; needs one saved link).
 - Opportunity Radar does not discover listings itself — by design (no fabricated listings; no paid feed).

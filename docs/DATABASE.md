@@ -51,6 +51,8 @@ Postgres on Supabase. One `public` schema with table groups by prefix-free domai
 
 | `20261120000008_recommendations.sql` | recommendations (reasoning immutable; status-only updates), recommendation_events + recommendation_feedback (append-only), daily_briefings | `supabase/tests/recommendations.test.ts` |
 
-All eight are applied to the hosted project `nexus` (ref `obccfnhcnnlairctgomt`, eu-west-1) on 2026-11-20.
+| `20261120000009_development.sql` | skills, skill_evidence (https-only links), learning_resources (https-only), learning_progress (status + understood + applied; key `catalog:`/`user:`) | `supabase/tests/development.test.ts` |
+
+All nine are applied to the hosted project `nexus` (ref `obccfnhcnnlairctgomt`, eu-west-1) on 2026-11-20.
 
 **Standard added:** every new function must `revoke execute … from public, anon, authenticated` unless it is meant to be called via RPC.

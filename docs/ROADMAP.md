@@ -22,7 +22,7 @@ Order chosen so each slice is independently usable:
 ## Phase 3 — Personal context  *(DONE 2026-11-20)*
 `personal_memories` with classification (`fact | preference | pattern | temporary | hypothesis`), source and confidence; Memory Centre (view, correct, delete); per-category AI access permissions. Hypotheses can only become facts by explicit user confirmation.
 
-## Phase 4 — Intelligence
+## Phase 4 — Intelligence  *(rules engine, briefing, learning DONE; optional AI provider pending)*
 - AI provider interface (server-side via Supabase Edge Function; keys never in client). Default: **no provider**; optional free-tier providers configurable.
 - Deterministic recommendation engine first (rules + scoring over recorded data), AI only for explanation/phrasing when enabled.
 - Recommendation lifecycle: `viewed → accepted → started → completed → applied`; feedback (very/somewhat/not useful/already know) feeds scoring.
@@ -46,7 +46,7 @@ Security audit, E2E tests, performance, backup/restore drill, accessibility audi
 | 4 | Inspect & correct memory | 3 | Built: Memory Centre; DB rules VERIFIED by tests |
 | 5 | Recommendations explain reasoning | 4 | Built: why + evidence + benefit on every item |
 | 6 | Feedback influences recommendations | 4 | VERIFIED (engine tests: scoring/suppression from feedback) |
-| 7 | Verified learning links | 4 | — |
+| 7 | Verified learning links | 4 | Catalog links fetched (HTTP 200) 2026-11-20; user links labelled unverified |
 | 8 | Briefings reflect recorded data | 4 | Built: every item derived from records with evidence |
 | 9 | Notifications on Android PWA | 5 | — |
 | 10 | Team responsibility tracking | 2 | VERIFIED (DB tests: same-project assignee FK; rule tests) |

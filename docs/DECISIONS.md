@@ -13,6 +13,8 @@
 | D-007 | 2026-11-20 | Academics use a 4.0 GPA scale, stored as data | active |
 | D-008 | 2026-11-20 | Host the PWA on Vercel (free Hobby plan) | active |
 | D-009 | 2026-11-20 | Keep Supabase setup minimal: single user | active |
+| D-010 | 2026-11-20 | Recommendations are rule-based; AI optional on top | active |
+| D-011 | 2026-11-20 | Learning catalog = links verified live; no generated resources | active |
 
 ---
 
@@ -66,3 +68,13 @@
 - **Decision:** no extra hosted Auth hardening (server-side password policy, leaked-password checks, etc.) beyond defaults. Row Level Security stays on every table — it is what keeps the data private on a public API and costs nothing to keep.
 - **Consequences:** less dashboard configuration; the app's own 10-character rule still applies at sign-up.
 - **Revisit when:** anyone besides the Owner gets an account.
+
+## D-010 — Rule-based recommendations; AI optional on top
+- **Date:** 2026-11-20 · **Status:** active · **Decided by:** agent (Amber), derived from spec §4, §15
+- **Decision:** the recommendation engine (`src/lib/recommend.ts`) is deterministic rules over recorded data, with scoring adjusted by feedback. It needs no AI and no network beyond Supabase. A future AI layer may only rephrase/explain, using context from `buildAiContext()`.
+- **Consequences:** recommendations are explainable and testable; they are less "creative" than an LLM would be. Essential obligations have a score floor (70) so feedback cannot hide them.
+
+## D-011 — Verified learning catalog
+- **Date:** 2026-11-20 · **Status:** active · **Decided by:** agent (Amber), derived from spec §7 ("never fabricate")
+- **Decision:** built-in resources are a curated list whose URLs were fetched and returned HTTP 200 on 2026-11-20; durations are stated only where known. User-added links are shown as "not verified by NEXUS".
+- **Revisit when:** a server-side link checker (Edge Function with SSRF protection) is built to re-verify links periodically.

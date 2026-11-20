@@ -1,6 +1,6 @@
 # Status: NEXUS
 
-**Updated:** 2026-11-20 · **Phase:** 4 in progress — recommendation engine + daily briefing live; Development & learning next
+**Updated:** 2026-11-20 · **Phase:** 4 nearly complete — recommendations, briefing, Development & learning live; optional AI provider pending Owner decision
 
 **Live:** https://nexus-theta-peach.vercel.app · **Supabase:** `nexus` (`obccfnhcnnlairctgomt`, eu-west-1)
 
@@ -19,11 +19,12 @@
 - **Projects (Phase 2 slice 4):** migration 0006 (projects, members, tasks, milestones, meetings). Assignee must belong to the same project (composite FK). Deterministic health + leadership next steps with evidence (ownership, overdue check-ins, meeting cadence, deadline vs progress, workload imbalance). "Prepare agenda" copies an agenda; nothing is sent. Home shows at-risk projects + your tasks this week. Export v5. Section pages lazy-loaded.
 - **Personal context (Phase 3):** migration 0007 (personal_memories, ai_permissions). DB enforces: AI-originated facts/preferences need user confirmation; sensitive never AI-visible; source immutable; permissions default off. `buildAiContext()` is the single gate for future AI calls. Intelligence page: onboarding, Memory Centre (correct/delete/hide/sensitive/confirm-reject guesses), AI master switch + per-category toggles + exact preview. Export v6.
 - **Recommendations (Phase 4a):** migration 0008 (recommendations, events, feedback, daily_briefings). Deterministic rules across all modules; feedback learning (not useful −15, very useful +10, already know hides 14 d, not now 3 d); essential obligations floor 70. Daily briefing (3–5, max 2 per category) at top of Home with why/evidence, Done/On it/Not now/Applied and ratings. History in Intelligence. Export v7.
+- **Development & learning (Phase 4b):** migration 0009 (skills, skill_evidence, learning_resources, learning_progress). Proficiency estimated from evidence only (single item ≤ Beginner). Catalog of 33 free resources verified live 2026-11-20. Adaptive plans skip intro once Developing. Daily learning step in the briefing. Development page. Export v8.
 
 ## Evidence
 | Check | Result |
 |---|---|
-| `npx vitest run` | 23 files, **223/223 passed** (incl. 103 database/RLS, 26 GPA, 13 finance, 11 habits, 14 project rules, 4 AI gate, 9 recommendation engine, page renders) |
+| `npx vitest run` | 26 files, **244/244 passed** (incl. 114 database/RLS, 26 GPA, 13 finance, 11 habits, 14 project rules, 4 AI gate, 10 recommendation engine, 8 proficiency/catalog, page renders) |
 | View-leak mutation | Removing `security_invoker` from `account_balances` → isolation test failed ✔ (restored) |
 | Hosted finances check (rolled back) | momo=38750, savings=20000, sees own 3 accounts only, cross-currency transfer denied, write into other user's account denied |
 | Mutation checks | Owner policy → `using (true)`: isolation test failed ✔; migration 0002 removed: 3 privilege tests failed ✔ |
@@ -48,6 +49,7 @@
 - Optional for the Owner: enable 2FA on Vercel.
 
 ## Open questions
+- **AI provider (optional):** which free-tier provider, if any, and the Owner creates its API key. Blocks only the optional AI layer; everything else works without it.
 1. **Letter-grade → point mapping** for your school's 4.0 scale (e.g. A=4.0, B+=3.5, B=3.0 … and the mark ranges) — blocks Phase 2 Academics seed.
 
 ## Confirmed

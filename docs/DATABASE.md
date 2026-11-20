@@ -43,6 +43,8 @@ Postgres on Supabase. One `public` schema with table groups by prefix-free domai
 
 | `20261120000004_finances.sql` | financial_accounts, transactions, budgets, savings_goals; `account_balances` view (security_invoker); same-currency transfer trigger; account currency lock; audit on accounts + transactions | `supabase/tests/finances.test.ts` |
 
-All four are applied to the hosted project `nexus` (ref `obccfnhcnnlairctgomt`, eu-west-1) on 2026-11-20.
+| `20261120000005_goals_habits.sql` | goals, goal_milestones, habits, habit_checkins (insert/delete only; one per habit per day) | `supabase/tests/goals_habits.test.ts` |
+
+All five are applied to the hosted project `nexus` (ref `obccfnhcnnlairctgomt`, eu-west-1) on 2026-11-20.
 
 **Standard added:** every new function must `revoke execute … from public, anon, authenticated` unless it is meant to be called via RPC.

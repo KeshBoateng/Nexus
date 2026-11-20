@@ -1,6 +1,6 @@
 # Status: NEXUS
 
-**Updated:** 2026-11-20 · **Phase:** 2 — Core management (Academics + Finances live; Goals & habits next)
+**Updated:** 2026-11-20 · **Phase:** 2 — Core management (Academics, Finances, Goals & habits live; Projects next)
 
 **Live:** https://nexus-theta-peach.vercel.app · **Supabase:** `nexus` (`obccfnhcnnlairctgomt`, eu-west-1)
 
@@ -15,11 +15,12 @@
 - Owner signed up and confirmed their email on production (2026-11-20).
 - **Academics (Phase 2 slice 1):** migration 0003 (grade bands, terms, courses, assessments); exact GPA/CGPA on the Owner's 4.0 scale; Academics page (terms, courses, deadlines, editable scale); Home "Needs attention" (overdue + next 7 days); export v2 includes academics.
 - **Finances (Phase 2 slice 2):** migration 0004 (accounts, transactions, budgets, savings goals; `account_balances` security-invoker view). Balances computed from opening balance + ledger, never stored. Per-currency totals, no FX. Finances page (record, budgets, accounts, goals, recent); Home "Money this month" with budget alerts; export v3.
+- **Goals & habits (Phase 2 slice 3):** migration 0005 (goals, goal_milestones, habits, habit_checkins). Goal progress = milestones done/total; habit streaks daily or N×/week (Mon–Sun). Goals & habits page; Home "Today's habits" check-off; export v4. Shared `ConfirmDelete` + `useRunner` extracted.
 
 ## Evidence
 | Check | Result |
 |---|---|
-| `npx vitest run` | 11 files, **128/128 passed** (incl. 52 database/RLS, 26 GPA, 13 finance, page renders) |
+| `npx vitest run` | 14 files, **153/153 passed** (incl. 65 database/RLS, 26 GPA, 13 finance, 11 habits, page renders) |
 | View-leak mutation | Removing `security_invoker` from `account_balances` → isolation test failed ✔ (restored) |
 | Hosted finances check (rolled back) | momo=38750, savings=20000, sees own 3 accounts only, cross-currency transfer denied, write into other user's account denied |
 | Mutation checks | Owner policy → `using (true)`: isolation test failed ✔; migration 0002 removed: 3 privilege tests failed ✔ |
@@ -57,6 +58,8 @@
 | K-6 | Finances loads the whole ledger at once; fine for years of personal use, would need paging at ~10k transactions | Low | If it gets slow |
 | K-7 | Transactions can be deleted and re-entered but not edited in the UI (DB allows it; audited) | Low | Next finance pass |
 | K-8 | Investments, assets/liabilities beyond account balances, and reports not built yet (spec §2.2) | — | Phase 2 later / Phase 6 |
+| K-9 | "Periodic reflections" and routines (spec §2.2) not built; reflections fold into weekly reviews | — | Phase 6 |
+| K-10 | Habit check-ins load only the last ~110 days (enough for displayed streaks; longer streaks would undercount) | Low | If a streak passes ~15 weeks |
 | K-2 | `npm audit` advisories in dev dependencies, not triaged | Low–Unknown | Before Phase 2 ends |
 | K-3 | No restore path for exports | Medium | Phase 7 |
 | K-4 | No Content-Security-Policy header yet | Medium | Phase 7 (or earlier) |

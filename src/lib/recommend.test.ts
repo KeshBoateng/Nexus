@@ -174,3 +174,14 @@ describe('exam prep rule', () => {
     expect(c[0]!.why).toBe('9 of 14 sections understood across 2 files.');
   });
 });
+
+describe('semester target rule', () => {
+  it('flags a course behind the grade the target GPA needs', () => {
+    const c = candidates({
+      ...empty,
+      targets: [{ courseId: 'c2', course: 'MATH 223', grade: 'A (80+)', standing: 'behind', soFar: 70, graded: 20, needed: 82.5 }],
+    }).filter((x) => x.rule_type === 'academic.target');
+    expect(c).toHaveLength(1);
+    expect(c[0]).toMatchObject({ title: 'MATH 223 is behind your target', action: 'You need 82.5% on the remaining 80% to get A (80+). Put extra study time on MATH 223 this week.' });
+  });
+});

@@ -66,6 +66,7 @@ Postgres on Supabase. One `public` schema with table groups by prefix-free domai
 | `20261120000016_study_notes.sql` | study_notes (one per material part; insert/delete only) for resumable study packs | `supabase/tests/study.test.ts` |
 
 | `20261120000017_study_learn.sql` | study_materials.page_starts (insert-only); study_lessons (one per section); study_progress (user-owned status/score per section) | `supabase/tests/study.test.ts` |
+| `20261120000018_term_target.sql` | academic_terms.target_gpa numeric(3,2) default 4.00, check 0–4, client-writable | `supabase/tests/academics.test.ts` |
 
 All seventeen are applied to the hosted project `nexus` (ref `obccfnhcnnlairctgomt`, eu-west-1) on 2026-11-20.
 

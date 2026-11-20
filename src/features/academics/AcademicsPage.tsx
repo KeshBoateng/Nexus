@@ -3,11 +3,12 @@ import { Link } from 'react-router';
 import { BookOpen, ChevronLeft, Check, Pencil, Plus } from 'lucide-react';
 import { cached } from '../../lib/offline';
 import { todayIn } from '../../lib/dates';
-import { COURSE_STATUS_LABEL, TERM_STATUS_LABEL, courseStatus, courseStudy, statusSummary, studyLine, termStatus, type CourseStatus, type CourseStudy, type TermStatus } from '../../lib/courseStatus';
+import { COURSE_STATUS_LABEL, TERM_STATUS_LABEL, courseStatus, courseStudy, currentTerm, studyLine, termStatus, type CourseStatus, type CourseStudy, type TermStatus } from '../../lib/courseStatus';
 import { Button, ConfirmDelete, Field, Notice, Panel, Select, TextInput } from '../../components/ui';
 import { useRunner, type Run } from '../../lib/useRunner';
 import { computeGpa, formatGpa, resolveGrade, validateBands } from '../../lib/gpa';
 import { describeDue, isoToLocalInput, localInputToIso } from '../../lib/dates';
+import { courseProgress, progressLine, projectedGpa, requiredBand, type CourseProgress, type Standing } from '../../lib/target';
 import { useProfile } from '../profile/ProfileProvider';
 import {
   ASSESSMENT_KINDS,
@@ -16,6 +17,7 @@ import {
   saveAssessment,
   saveBand,
   saveCourse,
+  saveMarks,
   saveTerm,
   setAssessmentDone,
   type AcademicsData,
@@ -80,37 +82,40 @@ function StatusBadge({ status, label }: { status: CourseStatus | TermStatus; lab
 }
 
 function Content({ data, run, busy }: { data: AcademicsData; run: Run; busy: boolean }) {
-  const overall = computeGpa(data.courses, data.bands);
   const { profile } = useProfile();
   const today = todayIn(profile?.timezone ?? 'Africa/Accra');
   const study = useCourseStudy();
-  const terms = new Map(data.terms.map((t) => [t.id, t]));
-  const counts = { completed: 0, taking: 0, awaiting: 0, upcoming: 0 };
-  for (const c of data.courses) {
-    const t = terms.get(c.term_id);
-    if (t) counts[courseStatus(c, t, today)]++;
+  const term = currentTerm(data.terms, today);
+  const past = data.terms.filter((t) => t.id !== term?.id);
+
+  if (!term) {
+    return (
+      <Panel title="Start this semester">
+        <p className="mb-4 text-[15px] text-text-muted">
+          NEXUS tracks the semester you’re in now. Add your courses, then marks as you get them back, and it shows whether you’re on course for your target GPA.
+        </p>
+        <TermForm run={run} busy={busy} onDone={() => undefined} />
+      </Panel>
+    );
   }
 
   return (
     <>
-      <section className="grid grid-cols-3 gap-3">
-        <Stat label="CGPA" value={formatGpa(overall.gpa)} emphasis />
-        <Stat label="Credits graded" value={String(overall.gradedCredits)} />
-        <Stat label="Credits in progress" value={String(overall.inProgressCredits)} />
-      </section>
-      {data.courses.length > 0 && (
-        <p className="-mt-3 text-sm text-text-muted">
-          {statusSummary(counts)}. Courses with a final mark count as completed; enter results when they come out.
-        </p>
+      <SemesterPanel term={term} data={data} run={run} busy={busy} today={today} study={study} />
+      <Deadlines data={data} courses={data.courses.filter((c) => c.term_id === term.id)} run={run} busy={busy} />
+
+      {past.length > 0 && (
+        <details className="rounded-2xl border border-border bg-surface px-4 py-3">
+          <summary className="cursor-pointer text-[15px] font-medium">Other semesters ({past.length})</summary>
+          <div className="mt-3 space-y-4">
+            {past.map((t) => (
+              <SemesterPanel key={t.id} term={t} data={data} run={run} busy={busy} today={today} study={study} compact />
+            ))}
+          </div>
+        </details>
       )}
 
-      <Deadlines data={data} run={run} busy={busy} />
-
-      {data.terms.map((t) => (
-        <TermPanel key={t.id} term={t} data={data} run={run} busy={busy} today={today} study={study} />
-      ))}
-
-      <AddTerm run={run} busy={busy} first={data.terms.length === 0} />
+      <AddTerm run={run} busy={busy} />
       <ScalePanel bands={data.bands} run={run} busy={busy} />
     </>
   );
@@ -125,41 +130,51 @@ function Stat({ label, value, emphasis }: { label: string; value: string; emphas
   );
 }
 
+const STANDING_TONE: Record<Standing, string> = {
+  final: 'text-text-muted',
+  no_data: 'text-text-muted',
+  on_track: 'text-success',
+  behind: 'text-accent',
+  out_of_reach: 'text-danger',
+};
 
 // ---------------------------------------------------------------------------
-// Deadlines
+// Deadlines and marks
 // ---------------------------------------------------------------------------
 
-function Deadlines({ data, run, busy }: { data: AcademicsData; run: Run; busy: boolean }) {
+function Deadlines({ data, courses, run, busy }: { data: AcademicsData; courses: Course[]; run: Run; busy: boolean }) {
   const { profile } = useProfile();
   const tz = profile?.timezone ?? 'Africa/Accra';
   const [showDone, setShowDone] = useState(false);
   const [adding, setAdding] = useState(false);
-  const courseById = useMemo(() => new Map(data.courses.map((c) => [c.id, c])), [data.courses]);
+  const courseById = useMemo(() => new Map(courses.map((c) => [c.id, c])), [courses]);
 
-  const open = data.assessments.filter((a) => !a.completed_at);
-  const done = data.assessments.filter((a) => a.completed_at);
+  const mine = data.assessments.filter((a) => courseById.has(a.course_id));
+  const open = mine.filter((a) => !a.completed_at);
+  const done = mine.filter((a) => a.completed_at);
   const list = showDone ? done : open;
 
   return (
     <Panel
-      title="Deadlines"
+      title="Deadlines & marks"
       action={
-        data.courses.length > 0 && (
+        courses.length > 0 && (
           <Button variant="ghost" className="h-9 px-3 text-sm" onClick={() => setAdding((v) => !v)}>
             <Plus className="size-4" aria-hidden /> Add
           </Button>
         )
       }
     >
-      {adding && <AssessmentForm courses={data.courses} run={run} busy={busy} onDone={() => setAdding(false)} />}
-      {data.courses.length === 0 && <p className="text-[15px] text-text-muted">Add a term and a course first.</p>}
-      {data.courses.length > 0 && list.length === 0 && !adding && (
-        <p className="text-[15px] text-text-muted">{showDone ? 'Nothing completed yet.' : 'Nothing due. Add assignments, quizzes and exams as you get them.'}</p>
+      {adding && <AssessmentForm courses={courses} run={run} busy={busy} onDone={() => setAdding(false)} />}
+      {courses.length === 0 && <p className="text-[15px] text-text-muted">Add your courses first.</p>}
+      {courses.length > 0 && list.length === 0 && !adding && (
+        <p className="text-[15px] text-text-muted">
+          {showDone ? 'Nothing completed yet.' : 'Nothing due. Add assignments, quizzes, midsems and exams, with how much each is worth, as you hear about them.'}
+        </p>
       )}
       <ul className="divide-y divide-border">
         {list.map((a) => (
-          <AssessmentRow key={a.id} a={a} course={courseById.get(a.course_id)} tz={tz} run={run} />
+          <AssessmentRow key={a.id} a={a} course={courseById.get(a.course_id)} tz={tz} run={run} busy={busy} />
         ))}
       </ul>
       {done.length > 0 && (
@@ -171,33 +186,76 @@ function Deadlines({ data, run, busy }: { data: AcademicsData; run: Run; busy: b
   );
 }
 
-function AssessmentRow({ a, course, tz, run }: { a: Assessment; course?: Course; tz: string; run: Run }) {
+function AssessmentRow({ a, course, tz, run, busy }: { a: Assessment; course?: Course; tz: string; run: Run; busy: boolean }) {
   const due = a.due_at ? describeDue(a.due_at, new Date(), tz) : null;
   const done = Boolean(a.completed_at);
+  const [marking, setMarking] = useState(false);
+  const hasMark = a.score !== null && a.max_score !== null;
   return (
-    <li className="flex items-center gap-3 py-3">
-      <button
-        onClick={() => run(() => setAssessmentDone(a.id, !done))}
-        aria-label={done ? `Mark ${a.title} not done` : `Mark ${a.title} done`}
-        className={`flex size-6 shrink-0 items-center justify-center rounded-full border ${
-          done ? 'border-success bg-success text-bg' : 'border-border hover:border-accent'
-        }`}
-      >
-        {done && <Check className="size-3.5" aria-hidden />}
-      </button>
-      <div className="min-w-0 flex-1">
-        <p className={`truncate text-[15px] ${done ? 'text-text-faint line-through' : ''}`}>{a.title}</p>
-        <p className="text-xs text-text-faint">
-          {course?.code ?? course?.title ?? 'Course'} · {a.kind}
-        </p>
+    <li className="py-3">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => run(() => setAssessmentDone(a.id, !done))}
+          aria-label={done ? `Mark ${a.title} not done` : `Mark ${a.title} done`}
+          className={`flex size-6 shrink-0 items-center justify-center rounded-full border ${
+            done ? 'border-success bg-success text-bg' : 'border-border hover:border-accent'
+          }`}
+        >
+          {done && <Check className="size-3.5" aria-hidden />}
+        </button>
+        <div className="min-w-0 flex-1">
+          <p className={`truncate text-[15px] ${done && !hasMark ? 'text-text-faint line-through' : ''}`}>{a.title}</p>
+          <p className="text-xs text-text-faint">
+            {course?.code ?? course?.title ?? 'Course'} · {a.kind}
+            {a.weight !== null && ` · worth ${a.weight}%`}
+            {hasMark && (
+              <span className="text-text-muted">
+                {' '}
+                · got {a.score}/{a.max_score}
+              </span>
+            )}
+          </p>
+        </div>
+        {due && !done && (
+          <span className={`shrink-0 text-xs tabular ${due.overdue ? 'text-danger' : due.soon ? 'text-accent' : 'text-text-muted'}`}>{due.text}</span>
+        )}
+        <button className="shrink-0 rounded-lg px-2 py-1 text-xs text-accent hover:bg-surface-raised" onClick={() => setMarking((v) => !v)}>
+          {hasMark ? 'Edit mark' : 'Add mark'}
+        </button>
+        <ConfirmDelete label={`Delete ${a.title}`} onConfirm={() => run(() => remove('assessments', a.id))} />
       </div>
-      {due && !done && (
-        <span className={`shrink-0 text-xs tabular ${due.overdue ? 'text-danger' : due.soon ? 'text-accent' : 'text-text-muted'}`}>
-          {due.text}
-        </span>
-      )}
-      <ConfirmDelete label={`Delete ${a.title}`} onConfirm={() => run(() => remove('assessments', a.id))} />
+      {marking && <MarkForm a={a} run={run} busy={busy} onDone={() => setMarking(false)} />}
     </li>
+  );
+}
+
+function MarkForm({ a, run, busy, onDone }: { a: Assessment; run: Run; busy: boolean; onDone: () => void }) {
+  const [score, setScore] = useState(a.score?.toString() ?? '');
+  const [max, setMax] = useState(a.max_score?.toString() ?? '');
+  const [weight, setWeight] = useState(a.weight?.toString() ?? '');
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    const ok = await run(() => saveMarks(a.id, { score: numOrNull(score), max_score: numOrNull(max), weight: numOrNull(weight) }, Boolean(a.completed_at)));
+    if (ok) onDone();
+  }
+  return (
+    <form onSubmit={submit} className="mt-3 space-y-3 rounded-xl border border-border p-3">
+      <div className="grid grid-cols-3 gap-3">
+        <Field label="You got">
+          <TextInput type="number" min={0} step={0.01} value={score} onChange={(e) => setScore(e.target.value)} />
+        </Field>
+        <Field label="Out of">
+          <TextInput type="number" min={0.01} step={0.01} value={max} onChange={(e) => setMax(e.target.value)} />
+        </Field>
+        <Field label="Worth (% of course)">
+          <TextInput type="number" min={0} max={100} step={0.01} value={weight} onChange={(e) => setWeight(e.target.value)} />
+        </Field>
+      </div>
+      <div className="flex gap-2">
+        <Button type="submit" disabled={busy}>Save</Button>
+        <Button type="button" variant="ghost" onClick={onDone}>Cancel</Button>
+      </div>
+    </form>
   );
 }
 
@@ -206,19 +264,20 @@ function AssessmentForm({ courses, run, busy, onDone }: { courses: Course[]; run
   const [courseId, setCourseId] = useState(courses[0]?.id ?? '');
   const [kind, setKind] = useState<(typeof ASSESSMENT_KINDS)[number]>('assignment');
   const [due, setDue] = useState(isoToLocalInput(null));
+  const [weight, setWeight] = useState('');
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    const ok = await run(() => saveAssessment({ title, course_id: courseId, kind, due_at: localInputToIso(due) }));
+    const ok = await run(() => saveAssessment({ title, course_id: courseId, kind, due_at: localInputToIso(due), weight: numOrNull(weight) }));
     if (ok) onDone();
   }
 
   return (
     <form onSubmit={submit} className="mb-4 space-y-3 rounded-xl border border-border p-4">
       <Field label="What is it?">
-        <TextInput value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={120} placeholder="e.g. Lab report 2" />
+        <TextInput value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={120} placeholder="e.g. Midsem exam" />
       </Field>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Course">
           <Select value={courseId} onChange={(e) => setCourseId(e.target.value)}>
             {courses.map((c) => (
@@ -240,6 +299,9 @@ function AssessmentForm({ courses, run, busy, onDone }: { courses: Course[]; run
         <Field label="Due">
           <TextInput type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} />
         </Field>
+        <Field label="Worth (% of course)" hint="e.g. midsem 30, final exam 60. Optional.">
+          <TextInput type="number" min={0} max={100} step={0.01} value={weight} onChange={(e) => setWeight(e.target.value)} />
+        </Field>
       </div>
       <div className="flex gap-2">
         <Button type="submit" disabled={busy}>Save</Button>
@@ -250,89 +312,143 @@ function AssessmentForm({ courses, run, busy, onDone }: { courses: Course[]; run
 }
 
 // ---------------------------------------------------------------------------
-// Terms and courses
+// The semester: target, projection, courses
 // ---------------------------------------------------------------------------
 
-function TermPanel({ term, data, run, busy, today, study }: { term: Term; data: AcademicsData; run: Run; busy: boolean; today: string; study: Map<string, CourseStudy> }) {
+function SemesterPanel({
+  term,
+  data,
+  run,
+  busy,
+  today,
+  study,
+  compact,
+}: {
+  term: Term;
+  data: AcademicsData;
+  run: Run;
+  busy: boolean;
+  today: string;
+  study: Map<string, CourseStudy>;
+  compact?: boolean;
+}) {
   const courses = data.courses.filter((c) => c.term_id === term.id);
-  const result = computeGpa(courses, data.bands);
-  const statuses = courses.map((c) => courseStatus(c, term, today));
-  const tStatus = termStatus(statuses, term, today);
+  const band = requiredBand(term.target_gpa, data.bands);
+  const rows = courses.map((c) => ({
+    ...c,
+    status: courseStatus(c, term, today),
+    progress: courseProgress(
+      c,
+      data.assessments.filter((a) => a.course_id === c.id),
+      band?.min_mark ?? 0,
+    ),
+  }));
+  const finalGpa = computeGpa(courses, data.bands).gpa;
+  const projected = projectedGpa(rows, data.bands);
+  const onTrack = rows.filter((r) => r.progress.standing === 'on_track' || (r.progress.standing === 'final' && (r.final_mark ?? 0) >= (band?.min_mark ?? 0))).length;
+  const graded = rows.filter((r) => r.progress.standing !== 'no_data').length;
+  const tStatus = termStatus(rows.map((r) => r.status), term, today);
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
 
   return (
-    <Panel
-      title={renaming ? undefined : term.name}
-      action={
-        !renaming && (
-          <div className="flex items-center gap-3">
-            <StatusBadge status={tStatus} label={TERM_STATUS_LABEL[tStatus]} />
-            <span className="text-sm text-text-muted">
-              GPA <span className="tabular font-semibold text-text">{formatGpa(result.gpa)}</span>
-            </span>
-            <button className="rounded-lg p-1.5 text-text-faint hover:text-text" onClick={() => setRenaming(true)} aria-label={`Rename ${term.name}`}>
-              <Pencil className="size-4" aria-hidden />
-            </button>
-            <ConfirmDelete label={`Delete ${term.name} and its courses`} onConfirm={() => run(() => remove('academic_terms', term.id))} />
-          </div>
-        )
-      }
-    >
-      {renaming && <TermForm term={term} run={run} busy={busy} onDone={() => setRenaming(false)} />}
+    <div className="space-y-4">
+      {!compact && (
+        <section className="grid grid-cols-3 gap-3">
+          <Stat label="Target GPA" value={term.target_gpa.toFixed(2)} emphasis />
+          <Stat label={tStatus === 'completed' ? 'Semester GPA' : 'Projected GPA'} value={formatGpa(tStatus === 'completed' ? finalGpa : projected)} />
+          <Stat label="Courses on track" value={graded ? `${onTrack}/${courses.length}` : '—'} />
+        </section>
+      )}
+      <Panel
+        title={renaming ? undefined : term.name}
+        action={
+          !renaming && (
+            <div className="flex items-center gap-2">
+              <StatusBadge status={tStatus} label={TERM_STATUS_LABEL[tStatus]} />
+              <button className="rounded-lg p-1.5 text-text-faint hover:text-text" onClick={() => setRenaming(true)} aria-label={`Edit ${term.name}`}>
+                <Pencil className="size-4" aria-hidden />
+              </button>
+              <ConfirmDelete label={`Delete ${term.name} and its courses`} onConfirm={() => run(() => remove('academic_terms', term.id))} />
+            </div>
+          )
+        }
+      >
+        {renaming && <TermForm term={term} run={run} busy={busy} onDone={() => setRenaming(false)} />}
 
-      {courses.length === 0 && !adding && <p className="mb-3 text-[15px] text-text-muted">No courses yet.</p>}
+        {!renaming && band && (
+          <p className="mb-3 text-sm text-text-muted">
+            {compact && finalGpa !== null ? `GPA ${formatGpa(finalGpa)} · ` : ''}
+            Target {term.target_gpa.toFixed(2)} means aiming for <span className="font-medium text-text">{band.letter} ({band.min_mark}+)</span> in every course.
+            {!compact && graded === 0 && courses.length > 0 && ' Record marks on Deadlines as you get them back and the projection fills in.'}
+          </p>
+        )}
 
-      {courses.length > 0 && (
-        <div className="-mx-1 mb-3">
-          <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-x-3 px-1 pb-2 text-xs text-text-faint">
-            <span>Course</span>
-            <span className="w-10 text-right">Cr</span>
-            <span className="w-12 text-right">Mark</span>
-            <span className="w-8 text-right">Gr</span>
-            <span className="w-14" />
-          </div>
-          {courses.map((c, i) =>
-            editingId === c.id ? (
-              <CourseForm key={c.id} termId={term.id} course={c} bands={data.bands} run={run} busy={busy} onDone={() => setEditingId(null)} />
+        {courses.length === 0 && !adding && <p className="mb-3 text-[15px] text-text-muted">Add the courses you’re taking this semester.</p>}
+
+        <div className="-mx-1 mb-3 space-y-1">
+          {rows.map((r) =>
+            editingId === r.id ? (
+              <CourseForm key={r.id} termId={term.id} course={r} bands={data.bands} run={run} busy={busy} onDone={() => setEditingId(null)} />
             ) : (
-              <CourseRow key={c.id} c={c} bands={data.bands} status={statuses[i]!} study={study.get(c.id)} onEdit={() => setEditingId(c.id)} run={run} />
+              <CourseRow key={r.id} c={r} bands={data.bands} status={r.status} progress={r.progress} band={band} study={study.get(r.id)} onEdit={() => setEditingId(r.id)} run={run} />
             ),
           )}
         </div>
-      )}
 
-      {adding ? (
-        <CourseForm termId={term.id} bands={data.bands} run={run} busy={busy} onDone={() => setAdding(false)} />
-      ) : (
-        <Button variant="ghost" className="h-9 px-3 text-sm" onClick={() => setAdding(true)}>
-          <Plus className="size-4" aria-hidden /> Add course
-        </Button>
-      )}
-    </Panel>
+        {adding ? (
+          <CourseForm termId={term.id} bands={data.bands} run={run} busy={busy} onDone={() => setAdding(false)} />
+        ) : (
+          <Button variant="ghost" className="h-9 px-3 text-sm" onClick={() => setAdding(true)}>
+            <Plus className="size-4" aria-hidden /> Add course
+          </Button>
+        )}
+      </Panel>
+    </div>
   );
 }
 
-function CourseRow({ c, bands, status, study, onEdit, run }: { c: Course; bands: Band[]; status: CourseStatus; study?: CourseStudy; onEdit: () => void; run: Run }) {
+function CourseRow({
+  c,
+  bands,
+  status,
+  progress,
+  band,
+  study,
+  onEdit,
+  run,
+}: {
+  c: Course;
+  bands: Band[];
+  status: CourseStatus;
+  progress: CourseProgress;
+  band: Band | null;
+  study?: CourseStudy;
+  onEdit: () => void;
+  run: Run;
+}) {
   const grade = resolveGrade(c, bands);
   return (
-    <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-x-3 rounded-lg px-1 py-2 text-[15px] hover:bg-surface-raised">
-      <div className="min-w-0">
+    <div className="flex items-start gap-3 rounded-lg px-1 py-2 text-[15px] hover:bg-surface-raised">
+      <div className="min-w-0 flex-1">
         <p className="truncate">{c.title}</p>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
           <StatusBadge status={status} label={COURSE_STATUS_LABEL[status]} />
-          {c.code && <span className="text-xs text-text-faint">{c.code}</span>}
+          <span className="text-xs text-text-faint">
+            {c.code ? `${c.code} · ` : ''}
+            {c.credit_hours} credit{c.credit_hours === 1 ? '' : 's'}
+          </span>
         </div>
+        <p className={`mt-1 text-xs ${STANDING_TONE[progress.standing]}`}>
+          {progress.standing === 'final' ? `Final: ${c.final_mark ?? c.final_letter}${grade ? ` → ${grade.letter}` : ''}` : progressLine(progress, band)}
+        </p>
         <Link to={`/life/study?course=${c.id}`} className="mt-1 inline-flex items-center gap-1 text-xs text-text-muted hover:text-accent">
           <BookOpen className="size-3" aria-hidden />
           {studyLine(study)}
         </Link>
       </div>
-      <span className="tabular w-10 text-right">{c.credit_hours}</span>
-      <span className="tabular w-12 text-right text-text-muted">{c.final_mark ?? '—'}</span>
-      <span className={`w-8 text-right font-semibold ${grade ? '' : 'text-text-faint'}`}>{grade?.letter ?? '…'}</span>
-      <span className="flex w-14 justify-end">
+      <span className="flex shrink-0">
         <button className="rounded-lg p-1.5 text-text-faint hover:text-text" onClick={onEdit} aria-label={`Edit ${c.title}`}>
           <Pencil className="size-4" aria-hidden />
         </button>
@@ -383,32 +499,37 @@ function CourseForm({
 
   return (
     <form onSubmit={submit} className="my-2 space-y-3 rounded-xl border border-border p-4">
-      <div className="grid gap-3 sm:grid-cols-[1fr_2fr]">
+      <div className="grid gap-3 sm:grid-cols-[1fr_2fr_auto]">
         <Field label="Code">
-          <TextInput value={code} onChange={(e) => setCode(e.target.value)} maxLength={20} placeholder="DCIT 101" />
+          <TextInput value={code} onChange={(e) => setCode(e.target.value)} maxLength={20} placeholder="DCIT 201" />
         </Field>
         <Field label="Title">
           <TextInput value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={120} />
         </Field>
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        <Field label="Credit hours">
+        <Field label="Credits">
           <TextInput type="number" min={1} max={12} step={1} value={credits} onChange={(e) => setCredits(e.target.value)} required />
         </Field>
-        <Field label="Final mark" hint="Leave empty if not out.">
-          <TextInput type="number" min={0} max={100} step={0.01} value={mark} onChange={(e) => setMark(e.target.value)} />
-        </Field>
-        <Field label="…or grade">
-          <Select value={mark.trim() ? '' : letter} onChange={(e) => setLetter(e.target.value)} disabled={Boolean(mark.trim())}>
-            <option value="">—</option>
-            {bands.map((b) => (
-              <option key={b.id} value={b.letter}>
-                {b.letter}
-              </option>
-            ))}
-          </Select>
-        </Field>
       </div>
+      {course && (
+        <details open={Boolean(course.final_mark !== null || course.final_letter)}>
+          <summary className="cursor-pointer text-sm text-text-muted">Final result (when it’s out)</summary>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <Field label="Final mark">
+              <TextInput type="number" min={0} max={100} step={0.01} value={mark} onChange={(e) => setMark(e.target.value)} />
+            </Field>
+            <Field label="…or grade">
+              <Select value={mark.trim() ? '' : letter} onChange={(e) => setLetter(e.target.value)} disabled={Boolean(mark.trim())}>
+                <option value="">—</option>
+                {bands.map((b) => (
+                  <option key={b.id} value={b.letter}>
+                    {b.letter}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+        </details>
+      )}
       <div className="flex gap-2">
         <Button type="submit" disabled={busy}>Save</Button>
         <Button type="button" variant="ghost" onClick={onDone}>Cancel</Button>
@@ -421,28 +542,32 @@ function TermForm({ term, run, busy, onDone }: { term?: Term; run: Run; busy: bo
   const [name, setName] = useState(term?.name ?? '');
   const [start, setStart] = useState(term?.starts_on ?? '');
   const [end, setEnd] = useState(term?.ends_on ?? '');
+  const [target, setTarget] = useState(String(term?.target_gpa ?? 4));
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    const ok = await run(() => saveTerm({ name, starts_on: start || null, ends_on: end || null }, term?.id));
+    const ok = await run(() => saveTerm({ name, starts_on: start || null, ends_on: end || null, target_gpa: Number(target) }, term?.id));
     if (ok) onDone();
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3">
-      <Field label="Term name">
+    <form onSubmit={submit} className="mb-3 space-y-3">
+      <Field label="Semester">
         <TextInput value={name} onChange={(e) => setName(e.target.value)} required maxLength={80} placeholder="Level 200 · Semester 1" />
       </Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <Field label="Starts">
           <TextInput type="date" value={start} onChange={(e) => setStart(e.target.value)} />
         </Field>
         <Field label="Ends">
           <TextInput type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
         </Field>
+        <Field label="Target GPA">
+          <TextInput type="number" min={0} max={4} step={0.01} value={target} onChange={(e) => setTarget(e.target.value)} required />
+        </Field>
       </div>
       <div className="flex gap-2">
-        <Button type="submit" disabled={busy}>Save term</Button>
+        <Button type="submit" disabled={busy}>Save</Button>
         {term && (
           <Button type="button" variant="ghost" onClick={onDone}>
             Cancel
@@ -453,17 +578,17 @@ function TermForm({ term, run, busy, onDone }: { term?: Term; run: Run; busy: bo
   );
 }
 
-function AddTerm({ run, busy, first }: { run: Run; busy: boolean; first: boolean }) {
-  const [open, setOpen] = useState(first);
+function AddTerm({ run, busy }: { run: Run; busy: boolean }) {
+  const [open, setOpen] = useState(false);
   if (!open) {
     return (
       <Button variant="ghost" className="border border-border" onClick={() => setOpen(true)}>
-        <Plus className="size-4" aria-hidden /> Add term
+        <Plus className="size-4" aria-hidden /> Start next semester
       </Button>
     );
   }
   return (
-    <Panel title={first ? 'Start with your current semester' : 'New term'}>
+    <Panel title="Next semester">
       <TermForm run={run} busy={busy} onDone={() => setOpen(false)} />
     </Panel>
   );

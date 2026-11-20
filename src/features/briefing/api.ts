@@ -1,4 +1,5 @@
-import { courseStudy } from '../../lib/courseStatus';
+import { courseStudy, currentTerm } from '../../lib/courseStatus';
+import { courseProgress, requiredBand } from '../../lib/target';
 import { useCallback, useEffect, useState } from 'react';
 import { cached } from '../../lib/offline';
 import { z } from 'zod';
@@ -95,6 +96,7 @@ export async function engineInput(today: string, currency: string): Promise<Engi
       kind: a.kind,
       courseId: a.course_id,
     })),
+    targets: semesterTargets(acad, today),
     courseStudy: Object.fromEntries(
       courseStudy(
         (studyMats.data ?? []) as { id: string; course_id: string | null }[],
@@ -249,6 +251,20 @@ export function useBriefing(today: string, currency: string) {
     };
   }, [load]);
   return { data, error, reload, refresh };
+}
+
+/** Current-semester courses below the grade the semester's target GPA needs. */
+export function semesterTargets(acad: Awaited<ReturnType<typeof fetchAcademics>>, today: string): NonNullable<EngineInput['targets']> {
+  const term = currentTerm(acad.terms, today);
+  const band = term ? requiredBand(term.target_gpa, acad.bands) : null;
+  if (!term || !band) return [];
+  return acad.courses
+    .filter((c) => c.term_id === term.id)
+    .flatMap((c) => {
+      const p = courseProgress(c, acad.assessments.filter((a) => a.course_id === c.id), band.min_mark);
+      if ((p.standing !== 'behind' && p.standing !== 'out_of_reach') || p.soFar === null) return [];
+      return [{ courseId: c.id, course: c.code ?? c.title, grade: `${band.letter} (${band.min_mark}+)`, standing: p.standing, soFar: p.soFar, graded: p.graded, needed: p.needed }];
+    });
 }
 
 /** Learn-mode position per file: understood count, next section (review first), last activity. */

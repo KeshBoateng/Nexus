@@ -92,3 +92,17 @@ export function statusSummary(counts: Record<CourseStatus, number>): string {
     .map((k) => `${counts[k]} ${COURSE_STATUS_LABEL[k].toLowerCase()}`)
     .join(' · ');
 }
+
+/**
+ * The semester the Academics page focuses on: the one whose dates contain today; otherwise the most
+ * recent one that has started (or has no start date); otherwise the earliest upcoming one.
+ */
+export function currentTerm<T extends { id: string; starts_on: string | null; ends_on: string | null; created_at: string }>(terms: readonly T[], today: string): T | null {
+  const within = terms.find((t) => t.starts_on && t.starts_on <= today && (!t.ends_on || t.ends_on >= today));
+  if (within) return within;
+  const started = terms
+    .filter((t) => !t.starts_on || t.starts_on <= today)
+    .sort((a, b) => (b.starts_on ?? b.created_at).localeCompare(a.starts_on ?? a.created_at));
+  if (started[0]) return started[0];
+  return [...terms].sort((a, b) => (a.starts_on ?? '').localeCompare(b.starts_on ?? ''))[0] ?? null;
+}

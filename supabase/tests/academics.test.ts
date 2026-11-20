@@ -154,4 +154,14 @@ describe('audit and cascade', () => {
     );
     expect(rows[0]!.n).toBe(0);
   });
+
+  it('semester target GPA defaults to 4.00, is editable, and stays within 0–4', async () => {
+    const t = await asUser(db, alice, async (tx) => {
+      const r = await tx.query<{ id: string; target_gpa: string }>(`insert into public.academic_terms (name) values ('Target') returning id, target_gpa`);
+      expect(Number(r.rows[0]!.target_gpa)).toBe(4);
+      await tx.query(`update public.academic_terms set target_gpa = 3.6 where id = $1`, [r.rows[0]!.id]);
+      return r.rows[0]!.id;
+    });
+    await expect(asUser(db, alice, (tx) => tx.query(`update public.academic_terms set target_gpa = 4.5 where id = $1`, [t]))).rejects.toThrow();
+  });
 });

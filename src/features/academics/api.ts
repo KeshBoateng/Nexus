@@ -19,6 +19,7 @@ export const TermSchema = z.object({
   name: z.string(),
   starts_on: z.string().nullable(),
   ends_on: z.string().nullable(),
+  target_gpa: z.coerce.number().default(4),
   created_at: z.string(),
 });
 export type Term = z.infer<typeof TermSchema>;
@@ -54,6 +55,7 @@ export const TermInput = z.object({
   name: z.string().trim().min(1).max(80),
   starts_on: z.string().nullable(),
   ends_on: z.string().nullable(),
+  target_gpa: z.number().min(0).max(4).optional(),
 });
 export const CourseInput = z.object({
   term_id: z.uuid(),
@@ -68,8 +70,16 @@ export const AssessmentInput = z.object({
   title: z.string().trim().min(1).max(120),
   kind: z.enum(ASSESSMENT_KINDS),
   due_at: z.string().nullable(),
+  weight: z.number().min(0).max(100).nullable().optional(),
   completed_at: z.string().nullable().optional(),
 });
+export const MarksInput = z
+  .object({
+    weight: z.number().min(0).max(100).nullable(),
+    score: z.number().min(0).nullable(),
+    max_score: z.number().positive().nullable(),
+  })
+  .refine((m) => m.score === null || m.max_score === null || m.score <= m.max_score, { message: 'Score can’t be more than the total.' });
 export const BandInput = z.object({
   letter: z.string().regex(/^[A-Z][+-]?$/),
   min_mark: z.number().min(0).max(100),
@@ -93,7 +103,7 @@ export async function fetchAcademics(): Promise<AcademicsData> {
   const sb = requireSupabase();
   const [bands, terms, courses, assessments] = await Promise.all([
     sb.from('grade_bands').select('id, letter, min_mark, max_mark, points').order('min_mark', { ascending: false }),
-    sb.from('academic_terms').select('id, name, starts_on, ends_on, created_at').order('starts_on', { ascending: true, nullsFirst: false }).order('created_at'),
+    sb.from('academic_terms').select('id, name, starts_on, ends_on, target_gpa, created_at').order('starts_on', { ascending: true, nullsFirst: false }).order('created_at'),
     sb.from('courses').select('id, term_id, code, title, credit_hours, final_mark, final_letter').order('created_at'),
     sb.from('assessments').select('id, course_id, title, kind, due_at, weight, score, max_score, completed_at').order('due_at', { ascending: true, nullsFirst: false }),
   ]);
@@ -129,6 +139,13 @@ export async function saveAssessment(input: z.input<typeof AssessmentInput>, id?
   const row = AssessmentInput.parse(input);
   const q = requireSupabase().from('assessments');
   check(id ? await q.update(row).eq('id', id) : await q.insert(row));
+}
+
+/** Weight (% of the course) and the mark you got back. Recording a score also marks it done. */
+export async function saveMarks(id: string, input: z.input<typeof MarksInput>, done: boolean) {
+  const row = MarksInput.parse(input);
+  const patch = row.score !== null && !done ? { ...row, completed_at: new Date().toISOString() } : row;
+  check(await requireSupabase().from('assessments').update(patch).eq('id', id));
 }
 
 export async function setAssessmentDone(id: string, done: boolean) {

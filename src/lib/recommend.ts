@@ -32,6 +32,8 @@ export interface Candidate {
 export interface EngineInput {
   today: string;
   assessments: { id: string; title: string; course: string; due_on: string | null; done: boolean; kind?: string; courseId?: string }[];
+  /** Current-semester courses that are behind the target grade (from weighted marks so far). */
+  targets?: { courseId: string; course: string; grade: string; standing: 'behind' | 'out_of_reach'; soFar: number; graded: number; needed: number | null }[];
   /** Study Library + Learn progress per course id (files, sections understood / known, sections to review). */
   courseStudy?: Record<string, { files: number; understood: number; total: number; review: number }>;
   budgetAlerts: { category: string; status: 'warn' | 'over'; percent: number; text: string }[];
@@ -219,6 +221,28 @@ export function candidates(i: EngineInput): Candidate[] {
       due_on: null,
       essential: step.id === 'overdue' || step.id === 'deadline-scope',
       base: step.priority === 'high' ? 80 : step.priority === 'medium' ? 60 : 40,
+    });
+  }
+
+  // Semester target: a course whose marks so far are below the grade the target GPA needs.
+  for (const t of i.targets ?? []) {
+    const reachable = t.standing === 'behind';
+    out.push({
+      rule_type: 'academic.target',
+      rule_key: `target:${t.courseId}:${t.graded}`,
+      category: 'academic',
+      kind: 'corrective',
+      title: reachable ? `${t.course} is behind your target` : `${t.course}: ${t.grade} is out of reach`,
+      action: reachable
+        ? `You need ${t.needed}% on the remaining ${100 - t.graded}% to get ${t.grade}. Put extra study time on ${t.course} this week.`
+        : `Aim for the next grade down in ${t.course}, and lift your other courses to protect your GPA.`,
+      why: `You have ${t.soFar}% on the ${t.graded}% of ${t.course} graded so far.`,
+      benefit: 'Catching a slipping course early is far easier than recovering in the final exam.',
+      evidence: [`${t.course} · ${t.soFar}% on ${t.graded}% graded · target ${t.grade}`],
+      est_minutes: 45,
+      due_on: null,
+      essential: false,
+      base: reachable ? 72 : 60,
     });
   }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { courseStatus, courseStudy, statusSummary, studyLine, termStatus } from './courseStatus';
+import { courseStatus, courseStudy, currentTerm, statusSummary, studyLine, termStatus } from './courseStatus';
 
 const today = '2026-11-20';
 const noDates = { starts_on: null, ends_on: null };
@@ -64,5 +64,18 @@ describe('studyLine / statusSummary', () => {
   });
   it('summarises course counts', () => {
     expect(statusSummary({ completed: 5, taking: 2, awaiting: 1, upcoming: 0 })).toBe('2 taking now · 1 awaiting result · 5 completed');
+  });
+});
+
+describe('currentTerm', () => {
+  const t = (id: string, starts_on: string | null, ends_on: string | null, created_at = '2026-01-01T00:00:00Z') => ({ id, starts_on, ends_on, created_at });
+  it('picks the semester you are in now', () => {
+    expect(currentTerm([t('old', '2026-01-10', '2026-05-30'), t('now', '2026-08-15', '2026-12-20')], today)?.id).toBe('now');
+  });
+  it('falls back to the latest started, then upcoming, and handles no dates', () => {
+    expect(currentTerm([t('old', '2026-01-10', '2026-05-30'), t('next', '2027-01-12', null)], today)?.id).toBe('old');
+    expect(currentTerm([t('next', '2027-01-12', null)], today)?.id).toBe('next');
+    expect(currentTerm([t('nodates', null, null)], today)?.id).toBe('nodates');
+    expect(currentTerm([], today)).toBeNull();
   });
 });

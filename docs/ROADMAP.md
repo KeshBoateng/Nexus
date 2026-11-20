@@ -31,7 +31,7 @@ Order chosen so each slice is independently usable:
 ## Phase 5 — Notifications  *(DONE 2026-11-20)*
 Notification centre, scheduling, quiet hours, dedupe, completion-based suppression, Web Push to Android PWA (VAPID; scheduled via Supabase cron + Edge Function), Accountability Mode.
 
-## Phase 6 — Advanced
+## Phase 6 — Advanced  *(DONE 2026-11-20)*
 Opportunity Radar (with link verification), weekly reviews, analytics, Dexie offline cache + queued writes with conflict detection (never silent overwrite of money/grades).
 
 ## Phase 7 — Hardening
@@ -52,5 +52,5 @@ Security audit, E2E tests, performance, backup/restore drill, accessibility audi
 | 10 | Team responsibility tracking | 2 | VERIFIED (DB tests: same-project assignee FK; rule tests) |
 | 11 | AI failures don't break core | 4 | AI off by default; no core feature calls AI |
 | 12 | User information protected | all | RLS tests VERIFIED for Phase 1 tables |
-| 13 | Export and restore | 1/7 | export built; restore pending |
+| 13 | Export and restore | 1/7 | export v11 covers all tables; restore pending (Phase 7) |
 | 14 | Within free limits | all | no paid dependencies |

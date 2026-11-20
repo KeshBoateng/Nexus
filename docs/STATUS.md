@@ -1,6 +1,6 @@
 # Status: NEXUS
 
-**Updated:** 2026-11-20 · **Phase:** 5 complete (push verified on the Owner's Android phone) — Phase 6 next
+**Updated:** 2026-11-20 · **Phase:** 6 complete — Phase 7 (hardening) next
 
 **Live:** https://nexus-theta-peach.vercel.app · **Supabase:** `nexus` (`obccfnhcnnlairctgomt`, eu-west-1)
 
@@ -23,10 +23,13 @@
 - **AI assistant (Phase 4c, optional):** Edge Function `ai-chat` (v2, provider-neutral, defaults Groq `openai/gpt-oss-120b`). Server enforces sign-in, AI switch, per-category permissions (same filter file as the app preview, test-checked), 50 msgs/day; conversation not stored; key only in Edge secrets. Migration 0010 `ai_requests` log. "Ask NEXUS" panel in Intelligence. Export v9. Gemini free tier rejected (free-tier prompts may be used to improve Google products / human review).
 - **Notifications (Phase 5):** migrations 0011 (notifications, notification_preferences, push_subscriptions, app_secrets, accountability_mode, `nexus_budgets_over` server-only) and 0012 (pg_cron every 15 min → `notify`). Edge Function `notify` (run / public-key / test): deterministic reminders (deadlines 24 h + overdue, briefing time, evening habits, my project tasks, budgets, accountability daily + Sunday weekly), dedupe, completion-based suppression, quiet hours, category prefs, Web Push via VAPID keys generated inside Supabase. Custom service worker (push + click → in-app path only). Bell with unread count, Notifications page (read/snooze/dismiss/history), Settings panel (enable push, test, per-category, Accountability Mode). Export v10.
 
+- **Install (2026-11-20):** one-tap install (Chrome `beforeinstallprompt`), iPhone Add-to-Home-Screen steps, PNG icons 192/512/maskable/apple-touch (`scripts/icons.mjs`).
+- **Phase 6:** migration 0013 (weekly_reviews, opportunities; link_status server-only, reset on URL change). Weekly review page (records snapshot + reflection); Insights panel (GPA by term, monthly spend, habit consistency); Opportunity Radar (tracker + relevance to skills/goals + `verify-link` Edge Function with SSRF protections + 7-day/1-day deadline reminders via `notify` v2; weekly note links to /review); offline viewing (IndexedDB per user, banner, writes need connection, cleared on sign-out). Export v11.
+
 ## Evidence
 | Check | Result |
 |---|---|
-| `npx vitest run` | 29 files, **271/271 passed** (incl. 114 database/RLS, 26 GPA, 13 finance, 11 habits, 14 project rules, 4 AI gate, 10 recommendation engine, 8 proficiency/catalog, page renders) |
+| `npx vitest run` | 33 files, **286/286 passed** (incl. 114 database/RLS, 26 GPA, 13 finance, 11 habits, 14 project rules, 4 AI gate, 10 recommendation engine, 8 proficiency/catalog, page renders) |
 | View-leak mutation | Removing `security_invoker` from `account_balances` → isolation test failed ✔ (restored) |
 | Hosted finances check (rolled back) | momo=38750, savings=20000, sees own 3 accounts only, cross-currency transfer denied, write into other user's account denied |
 | Mutation checks | Owner policy → `using (true)`: isolation test failed ✔; migration 0002 removed: 3 privilege tests failed ✔ |
@@ -42,6 +45,9 @@
 | Production URL | `/`, `/settings`, manifest, `sw.js`, icon → 200; security headers present; sign-in screen renders (env vars baked in) |
 
 ## Not verified
+- Offline mode on a real phone in airplane mode; Weekly review, Radar, Insights signed-in in a real browser (render-tested logic only).
+- `verify-link` against a real opportunity (deployed; needs one saved link).
+- Opportunity Radar does not discover listings itself — by design (no fabricated listings; no paid feed).
 - "Repeatedly postponed tasks" (spec §10) not detected — due-date changes aren't tracked yet.
 - Signed-in screens (Home, Academics, Settings) in a real browser on production — the agent can't sign in as the Owner; Academics is covered by a render test only.
 - Mark bands below A (5-mark steps) — ASSUMED from "go on from there"; editable in Academics → Grading scale.

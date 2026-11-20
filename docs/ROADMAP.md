@@ -11,7 +11,7 @@ Derived from spec §17. Each phase ends with something usable end to end, its te
 - Data export (JSON) — the first piece of acceptance criterion 13
 - **Exit:** sign up → profile exists → edit profile/preferences → export, verified against a real Supabase project.
 
-## Phase 2 — Core management  *(in progress — Academics shipped 2026-11-20)*
+## Phase 2 — Core management  *(in progress — Academics and Finances shipped 2026-11-20)*
 Order chosen so each slice is independently usable:
 1. **Academics:** terms, courses (credit hours), assessments, grading scale → GPA/CGPA as pure, tested functions; deadlines.
 2. **Finances:** accounts, transactions (integer minor units, multi-currency, no FX invention), budgets, savings goals; net worth = deterministic SQL view.

@@ -1,6 +1,6 @@
 # Status: NEXUS
 
-**Updated:** 2026-11-20 · **Phase:** 4 complete in code — optional AI assistant deployed; waiting for the Owner's Groq key
+**Updated:** 2026-11-20 · **Phase:** 4 complete — AI assistant verified end to end; Phase 5 (Notifications) next
 
 **Live:** https://nexus-theta-peach.vercel.app · **Supabase:** `nexus` (`obccfnhcnnlairctgomt`, eu-west-1)
 
@@ -34,11 +34,11 @@
 | Supabase security advisors | 0 table/function warnings after 0003; only "leaked password protection" (waived, D-009) |
 | Hosted academics check (rolled back) | own_course=1, attach to another user's term=denied, sees only own terms=1 |
 | Auto-deploy of `0b1eabd` | Production Ready in ~34 s; `/life/academics` → 200 |
+| AI assistant (2026-11-20 16:52 UTC) | Owner's message → function 200, Groq `openai/gpt-oss-120b` replied; `ai_requests` row status ok. Earlier 503 traced to secret saved as `API_key` instead of `AI_API_KEY` (fixed by Owner). |
 | Auto-deploy of `604c2bd` | Production Ready; live bundle contains Finances UI; `/life/finances` → 200 |
 | Production URL | `/`, `/settings`, manifest, `sw.js`, icon → 200; security headers present; sign-in screen renders (env vars baked in) |
 
 ## Not verified
-- AI assistant end to end (no key yet). Probed: unauthenticated and fake-token calls → 401; CORS allows the Vercel origin.
 - Signed-in screens (Home, Academics, Settings) in a real browser on production — the agent can't sign in as the Owner; Academics is covered by a render test only.
 - Mark bands below A (5-mark steps) — ASSUMED from "go on from there"; editable in Academics → Grading scale.
 - PWA install on Android; SVG-only icon may need PNGs.
@@ -51,7 +51,6 @@
 - Optional for the Owner: enable 2FA on Vercel.
 
 ## Open questions
-- **AI key:** Owner creates a Groq API key and stores it as Edge Function secret `AI_API_KEY` (Supabase dashboard). Agent must not handle the key.
 1. **Letter-grade → point mapping** for your school's 4.0 scale (e.g. A=4.0, B+=3.5, B=3.0 … and the mark ranges) — blocks Phase 2 Academics seed.
 
 ## Confirmed

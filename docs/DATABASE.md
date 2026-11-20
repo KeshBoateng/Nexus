@@ -65,6 +65,8 @@ Postgres on Supabase. One `public` schema with table groups by prefix-free domai
 
 | `20261120000016_study_notes.sql` | study_notes (one per material part; insert/delete only) for resumable study packs | `supabase/tests/study.test.ts` |
 
-All sixteen are applied to the hosted project `nexus` (ref `obccfnhcnnlairctgomt`, eu-west-1) on 2026-11-20.
+| `20261120000017_study_learn.sql` | study_materials.page_starts (insert-only); study_lessons (one per section); study_progress (user-owned status/score per section) | `supabase/tests/study.test.ts` |
+
+All seventeen are applied to the hosted project `nexus` (ref `obccfnhcnnlairctgomt`, eu-west-1) on 2026-11-20.
 
 **Standard added:** every new function must `revoke execute … from public, anon, authenticated` unless it is meant to be called via RPC.

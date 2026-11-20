@@ -60,6 +60,21 @@ describe('learning rule', () => {
   });
 });
 
+describe('study continue rule', () => {
+  it('points at where you left off, review first', () => {
+    const c = candidates({
+      ...empty,
+      study: [
+        { materialId: 'm1', title: 'DCIT 201 Notes', understood: 4, total: 14, next: 5, review: false, lastStudied: '2026-11-19T20:00:00Z' },
+        { materialId: 'm2', title: 'Old file', understood: 3, total: 3, next: 3, review: false, lastStudied: '2026-11-20T08:00:00Z' },
+      ],
+    }).filter((x) => x.rule_type === 'study.continue');
+    expect(c).toHaveLength(1);
+    expect(c[0]).toMatchObject({ title: 'Continue studying DCIT 201 Notes', action: 'Next up: section 5 of 14.' });
+    expect(c[0]!.why).toBe("You've understood 4 of 14 sections so far.");
+  });
+});
+
 describe('score — learning from feedback', () => {
   const c = candidates({ ...empty, goals: [{ id: 'g', title: 'Learn Go', milestonesTotal: 0, overdueMilestones: [] }] })[0]!;
 

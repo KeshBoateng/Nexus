@@ -14,7 +14,7 @@
 // with retry_after; the app calls again and work continues from the next unfinished part.
 
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
-import { chunkText } from './studyText.ts';
+import { chunkText, sectionLabel, sectionsFor } from './studyText.ts';
 
 const ALLOWED_ORIGINS = ['https://nexus-theta-peach.vercel.app', 'http://localhost:5173'];
 const DAILY_LIMIT = 50;
@@ -120,22 +120,95 @@ Deno.serve(async (req) => {
   if (ue || !u.user) return json({ error: 'Sign in required' }, 401, origin);
 
   let id: unknown;
+  let action: unknown;
+  let sectionNo: unknown;
   try {
-    id = (await req.json())?.id;
+    const b = await req.json();
+    id = b?.id;
+    action = b?.action ?? 'pack';
+    sectionNo = b?.section;
   } catch {
     return json({ error: 'Invalid JSON' }, 400, origin);
   }
   if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id)) return json({ error: 'Invalid id' }, 400, origin);
+  if (action !== 'pack' && action !== 'lesson') return json({ error: 'Unknown action' }, 400, origin);
 
   const [prefs, perm, mat] = await Promise.all([
     sb.from('user_preferences').select('ai_enabled').single(),
     sb.from('ai_permissions').select('allowed').eq('category', 'study').maybeSingle(),
-    sb.from('study_materials').select('id, title, extracted_text').eq('id', id).maybeSingle(),
+    sb.from('study_materials').select('id, title, extracted_text, page_starts, page_count').eq('id', id).maybeSingle(),
   ]);
   if (!prefs.data?.ai_enabled || !perm.data?.allowed) return json({ error: 'Allow “Study materials” for AI first (and turn AI on).' }, 403, origin);
   if (!mat.data) return json({ error: 'Not found' }, 404, origin);
   const text: string = mat.data.extracted_text ?? '';
   if (text.trim().length < 200) return json({ error: 'Not enough text in this file to analyse (it may be a scanned PDF).' }, 422, origin);
+
+  if (action === 'lesson') return lesson();
+
+  /** Teach one section (Learn mode). Kept once generated; the user records their own progress. */
+  async function lesson(): Promise<Response> {
+    const sections = sectionsFor(text, (mat.data!.page_starts as number[] | null) ?? null, (mat.data!.page_count as number | null) ?? null);
+    const n = Number(sectionNo);
+    if (!Number.isInteger(n) || n < 1 || n > sections.length) return json({ error: 'No such section' }, 400, origin);
+    const { data: existing } = await sb.from('study_lessons').select('id, sections_total').eq('material_id', mat.data!.id).eq('section', n).maybeSingle();
+    if (existing && existing.sections_total === sections.length) return json({ status: 'done', cached: true }, 200, origin);
+    const { count } = await sb.from('ai_requests').select('id', { count: 'exact', head: true }).gte('created_at', new Date(Date.now() - 86_400_000).toISOString()).neq('status', 'blocked');
+    if ((count ?? 0) + 1 > DAILY_LIMIT) return json({ error: `Today's limit of ${DAILY_LIMIT} AI calls is reached. Your progress is saved — continue tomorrow.` }, 429, origin);
+
+    const s = sections[n - 1]!;
+    const label = sectionLabel(s);
+    try {
+      const r = await paced(() =>
+        callModel(
+          sb,
+          RULES,
+          `You are teaching ${label} of ${sections.length} of "${mat.data!.title}" to a university student who has not read it yet.
+Return a JSON object with exactly these keys:
+- "title": a short title for this section,
+- "explanation": teach the material clearly and in order, in plain language (250-500 words). Build up from basics, define terms when first used, and connect ideas. Use only what this text says.
+- "key_terms": array of up to 8 objects {"term","meaning"},
+- "examples": array of up to 3 short examples, ONLY if the text contains them (otherwise an empty array),
+- "check_questions": array of 3 to 5 objects {"q","a"} that test understanding (not memorising wording), answerable from this text.
+Section text:
+
+${text.slice(s.start, s.end)}`,
+          1_800,
+          true,
+        ),
+      );
+      if (typeof r !== 'string') return json({ status: 'in_progress', done: 0, total: 1, retry_after: r.wait }, 202, origin);
+      let p: Record<string, unknown>;
+      try {
+        p = JSON.parse(r);
+      } catch {
+        return json({ error: 'The AI returned an unreadable lesson. Try again.' }, 502, origin);
+      }
+      const explanation = str(p.explanation, 6000);
+      if (!explanation) return json({ error: 'The AI returned an empty lesson. Try again.' }, 502, origin);
+      const content = {
+        title: str(p.title, 160) || label,
+        explanation,
+        key_terms: (Array.isArray(p.key_terms) ? p.key_terms : [])
+          .map((k) => ({ term: str((k as { term?: unknown })?.term, 120), meaning: str((k as { meaning?: unknown })?.meaning, 500) }))
+          .filter((k) => k.term && k.meaning)
+          .slice(0, 8),
+        examples: (Array.isArray(p.examples) ? p.examples : []).map((e) => str(e, 600)).filter(Boolean).slice(0, 3),
+        check_questions: pairs(p.check_questions, 5),
+        label,
+        from_page: s.fromPage,
+        to_page: s.toPage,
+        approximate: s.approximate,
+      };
+      if (existing) await sb.from('study_lessons').delete().eq('id', existing.id);
+      const ins = await sb.from('study_lessons').insert({ material_id: mat.data!.id, section: n, sections_total: sections.length, content, model: Deno.env.get('AI_MODEL') ?? 'openai/gpt-oss-120b' });
+      if (ins.error && ins.error.code !== '23505') return json({ error: 'Could not save the lesson.' }, 500, origin);
+      return json({ status: 'done' }, 200, origin);
+    } catch (e) {
+      if (e instanceof Fatal) return json({ error: e.message }, e.status, origin);
+      console.error('lesson failed', e instanceof Error ? e.message : e);
+      return json({ error: 'Could not reach the AI provider. Try again.' }, 504, origin);
+    }
+  }
 
   const all = chunkText(text, CHUNK);
   const chunks = all.slice(0, MAX_CHUNKS);

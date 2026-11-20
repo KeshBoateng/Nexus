@@ -28,11 +28,13 @@
 
 - **Study Library (2026-11-20):** migrations 0014 (study_materials with full-text search, study_analyses, 'study' AI permission) and 0015 (private `study` bucket, per-user folder policies, 25 MB, document types only). Text extracted on-device (pdf.js, mammoth, JSZip; lazy-loaded). Auto-filing by course code (filename any case; body text needs capitalised code seen twice). Edge Function `study-analyze`: consent-checked, document text only, chunked for long files (≤5 parts), shares 50/day cap, JSON validated. UI at My Life → Study Library: upload many files, search, course/topic edit, open file (5-min signed URL), study pack (summary, concepts, flashcards, practice questions). Export v12 (records + extracted text; files stay in storage).
 - **Study packs, paced (2026-11-20):** first real run hit Groq free-tier 429 ("TPM limit 8000"; three calls in ~3 s). Fixed: migration 0016 `study_notes` saves each part's notes; `study-analyze` v2 uses 7k-char parts, waits out rate limits within a 100 s budget or returns `in_progress` + `retry_after`; the app keeps calling with a countdown until done. Rate-limited calls aren't counted against the daily cap.
+- **Fix (2026-11-20):** Intelligence page failed to load once the 'study' AI permission existed (strict category enum). Now parsed tolerantly; Study materials switch shown on the Intelligence page; regression test.
+- **Learn mode (2026-11-20):** migration 0017 (page_starts on materials; study_lessons; study_progress). Files split into ~6k-char sections (exact pages for new PDF/PPTX uploads via per-page offsets; older uploads show ≈ pages). Per-section AI lesson (explanation, key terms, examples only from text, 3–5 check questions) generated on demand via `study-analyze` v3 action `lesson`. User self-check → understood (≥70%) / review; progress bar, Continue (review first), open PDF at page. Briefing rule 'Continue studying …'.
 
 ## Evidence
 | Check | Result |
 |---|---|
-| `npx vitest run` | 36 files, **311/311 passed** (incl. 114 database/RLS, 26 GPA, 13 finance, 11 habits, 14 project rules, 4 AI gate, 10 recommendation engine, 8 proficiency/catalog, page renders) |
+| `npx vitest run` | 38 files, **320/320 passed** (incl. 114 database/RLS, 26 GPA, 13 finance, 11 habits, 14 project rules, 4 AI gate, 10 recommendation engine, 8 proficiency/catalog, page renders) |
 | View-leak mutation | Removing `security_invoker` from `account_balances` → isolation test failed ✔ (restored) |
 | Hosted finances check (rolled back) | momo=38750, savings=20000, sees own 3 accounts only, cross-currency transfer denied, write into other user's account denied |
 | Mutation checks | Owner policy → `using (true)`: isolation test failed ✔; migration 0002 removed: 3 privilege tests failed ✔ |

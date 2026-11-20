@@ -77,10 +77,12 @@ export async function uploadMaterial(file: File, userId: string, courses: StudyD
   const { extractText } = await import('./extract');
   let text = '';
   let pages: number | null = null;
+  let pageStarts: number[] | null = null;
   try {
     const r = await extractText(file, ext);
     text = r.text;
     pages = r.pages;
+    pageStarts = r.pageStarts;
   } catch {
     // Unreadable or scanned — the file is still stored, marked as having no text.
   }
@@ -100,6 +102,7 @@ export async function uploadMaterial(file: File, userId: string, courses: StudyD
       mime: ACCEPTED[ext],
       size_bytes: file.size,
       page_count: pages,
+      page_starts: text ? pageStarts : null,
       extracted_text: text || null,
       status: text.length >= 200 ? 'extracted' : 'no_text',
     });

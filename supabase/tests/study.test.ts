@@ -97,3 +97,33 @@ describe('study_notes (resumable generation)', () => {
     expect(rows[0]!.n).toBe(0);
   });
 });
+
+describe('Learn mode (lessons, progress, page map)', () => {
+  it('stores a page map at upload but never lets it change', async () => {
+    const m = await asUser(db, alice, async (tx) =>
+      (await tx.query<{ id: string }>(`insert into public.study_materials (title, file_path, mime, size_bytes, page_starts) values ('Paged', $1, 'application/pdf', 10, '{0,1200,2400}') returning id`, [path(alice)])).rows[0]!.id,
+    );
+    await expect(asUser(db, alice, (tx) => tx.query(`update public.study_materials set page_starts = '{0}' where id = $1`, [m]))).rejects.toThrow(/permission denied/);
+  });
+
+  it('one lesson and one progress row per section; progress is user-editable; both go with the file', async () => {
+    const m = await asUser(db, alice, async (tx) =>
+      (await tx.query<{ id: string }>(`insert into public.study_materials (title, file_path, mime, size_bytes) values ('Learn', $1, 'application/pdf', 10) returning id`, [path(alice)])).rows[0]!.id,
+    );
+    await asUser(db, alice, async (tx) => {
+      await tx.query(`insert into public.study_lessons (material_id, section, sections_total, content) values ($1, 1, 9, '{"explanation":"x"}')`, [m]);
+      await tx.query(`insert into public.study_progress (material_id, section, status, score, attempts) values ($1, 1, 'review', 60, 1)`, [m]);
+      await tx.query(`update public.study_progress set status = 'understood', score = 100, attempts = 2 where material_id = $1 and section = 1`, [m]);
+    });
+    await expect(asUser(db, alice, (tx) => tx.query(`insert into public.study_lessons (material_id, section, sections_total, content) values ($1, 1, 9, '{}')`, [m]))).rejects.toThrow(/study_lessons_once/);
+    await expect(asUser(db, alice, (tx) => tx.query(`insert into public.study_progress (material_id, section, status) values ($1, 2, 'mastered')`, [m]))).rejects.toThrow(/check constraint/);
+    await expect(asUser(db, bob, (tx) => tx.query(`insert into public.study_progress (material_id, section) values ($1, 3)`, [m]))).rejects.toThrow(/foreign key/);
+    await expect(asUser(db, alice, (tx) => tx.query(`update public.study_lessons set content = '{}' where material_id = $1`, [m]))).rejects.toThrow(/permission denied/);
+    await asUser(db, alice, (tx) => tx.query(`delete from public.study_materials where id = $1`, [m]));
+    const { rows } = await db.query<{ n: number }>(
+      `select ((select count(*) from public.study_lessons where material_id = $1) + (select count(*) from public.study_progress where material_id = $1))::int as n`,
+      [m],
+    );
+    expect(rows[0]!.n).toBe(0);
+  });
+});

@@ -84,6 +84,67 @@ export function chunkText(text: string, max: number): string[] {
   return out;
 }
 
+export interface Section {
+  index: number; // 1-based
+  start: number; // char offset (inclusive)
+  end: number; // char offset (exclusive)
+  fromPage: number | null;
+  toPage: number | null;
+  approximate: boolean; // page numbers estimated (no page map stored)
+}
+
+/**
+ * Split a document into study sections of roughly `target` characters.
+ * With a page map (char offset where each page starts) sections follow page boundaries and
+ * carry exact page numbers. Without one, sections follow paragraphs and pages are estimated
+ * from the page count. Deterministic: the same text always gives the same sections.
+ */
+export function sectionsFor(text: string, pageStarts: readonly number[] | null, pageCount: number | null, target = 6000): Section[] {
+  const len = text.length;
+  if (len === 0) return [];
+  const out: Section[] = [];
+  if (pageStarts && pageStarts.length > 0) {
+    const starts = [...pageStarts].filter((s) => s >= 0 && s < len).sort((a, b) => a - b);
+    if (starts[0] !== 0) starts.unshift(0);
+    let secStart = 0;
+    let fromPage = 1;
+    for (let p = 0; p < starts.length; p++) {
+      const pageEnd = p + 1 < starts.length ? starts[p + 1]! : len;
+      const isLast = p + 1 === starts.length;
+      if (pageEnd - secStart >= target || isLast) {
+        out.push({ index: out.length + 1, start: secStart, end: pageEnd, fromPage, toPage: p + 1, approximate: false });
+        secStart = pageEnd;
+        fromPage = p + 2;
+      }
+    }
+    return out;
+  }
+  // No page map: paragraph-aligned cuts near `target`.
+  let start = 0;
+  while (start < len) {
+    let end = Math.min(len, start + target);
+    if (end < len) {
+      const para = text.lastIndexOf('\n\n', end);
+      if (para > start + target * 0.5) end = para;
+    }
+    out.push({ index: out.length + 1, start, end, fromPage: null, toPage: null, approximate: true });
+    start = end;
+  }
+  if (pageCount && pageCount > 0) {
+    for (const s of out) {
+      s.fromPage = Math.min(pageCount, Math.floor((s.start / len) * pageCount) + 1);
+      s.toPage = Math.max(s.fromPage, Math.min(pageCount, Math.ceil((s.end / len) * pageCount)));
+    }
+  }
+  return out;
+}
+
+export function sectionLabel(s: Section): string {
+  if (s.fromPage === null) return `Section ${s.index}`;
+  const pages = s.fromPage === s.toPage ? `page ${s.fromPage}` : `pages ${s.fromPage}–${s.toPage}`;
+  return `Section ${s.index} · ${s.approximate ? '≈ ' : ''}${pages}`;
+}
+
 export const ACCEPTED: Record<string, string> = {
   pdf: 'application/pdf',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

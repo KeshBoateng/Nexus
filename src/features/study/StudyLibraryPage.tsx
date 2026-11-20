@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { BookOpen, ChevronDown, ChevronLeft, ExternalLink, Search, Sparkles, Upload } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronLeft, ExternalLink, GraduationCap, Search, Sparkles, Upload } from 'lucide-react';
+import { LearnView } from './LearnView';
 import { Button, ConfirmDelete, Notice, Panel, Select, TextInput } from '../../components/ui';
 import { cached } from '../../lib/offline';
 import { useAuth } from '../auth/AuthProvider';
@@ -175,6 +176,7 @@ function MaterialRow({ m, data, analysis, onChange }: { m: Material; data: Study
   const [msg, setMsg] = useState<{ tone: 'danger' | 'success'; text: string } | null>(null);
   const [topic, setTopic] = useState(m.topic ?? '');
   const [progress, setProgress] = useState<string | null>(null);
+  const [learning, setLearning] = useState(false);
 
   async function run(fn: () => Promise<string | void>) {
     setBusy(true);
@@ -248,12 +250,18 @@ function MaterialRow({ m, data, analysis, onChange }: { m: Material; data: Study
                 <Sparkles className="size-4" aria-hidden /> {busy ? 'Working…' : analysis ? 'Rebuild study pack' : 'Make study pack'}
               </Button>
             )}
+            {m.status !== 'no_text' && data.aiEnabled && data.studyAllowed && (
+              <Button variant="ghost" className="h-9 border border-border px-3 text-sm" onClick={() => setLearning((v) => !v)} aria-expanded={learning}>
+                <GraduationCap className="size-4" aria-hidden /> {learning ? 'Close Learn mode' : 'Learn section by section'}
+              </Button>
+            )}
             <span className="flex-1" />
             <ConfirmDelete label={`Delete ${m.title}`} onConfirm={() => run(() => deleteMaterial(m))} />
           </div>
           {progress && <p className="text-sm text-text-muted" role="status">{progress}</p>}
           {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
-          {analysis && <StudyPack a={analysis} />}
+          {learning && <LearnView m={m} />}
+          {!learning && analysis && <StudyPack a={analysis} />}
         </div>
       )}
     </li>

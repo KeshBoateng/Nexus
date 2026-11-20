@@ -48,13 +48,16 @@ const sb = () => requireSupabase();
 
 /** Collect the engine's inputs from every module (deterministic; no AI). */
 export async function engineInput(today: string, currency: string): Promise<EngineInput> {
-  const [acad, fin, goals, proj, dev, guesses] = await Promise.all([
+  const [acad, fin, goals, proj, dev, guesses, studyProg, studyLessons, studyMats] = await Promise.all([
     fetchAcademics(),
     fetchFinances(),
     fetchGoals(),
     fetchProjects(),
     fetchDev(),
     sb().from('personal_memories').select('id', { count: 'exact', head: true }).eq('kind', 'hypothesis'),
+    sb().from('study_progress').select('material_id, section, status, updated_at').order('updated_at', { ascending: false }).limit(500),
+    sb().from('study_lessons').select('material_id, sections_total'),
+    sb().from('study_materials').select('id, title'),
   ]);
   if (guesses.error) throw guesses.error;
 
@@ -114,6 +117,11 @@ export async function engineInput(today: string, currency: string): Promise<Engi
     pendingGuesses: guesses.count ?? 0,
     hasCourses: acad.courses.length > 0,
     learning: learningState(dev),
+    study: studyState(
+      (studyProg.data ?? []) as { material_id: string; section: number; status: string; updated_at: string }[],
+      (studyLessons.data ?? []) as { material_id: string; sections_total: number }[],
+      (studyMats.data ?? []) as { id: string; title: string }[],
+    ),
   };
 }
 
@@ -231,4 +239,26 @@ export function useBriefing(today: string, currency: string) {
     };
   }, [load]);
   return { data, error, reload, refresh };
+}
+
+/** Learn-mode position per file: understood count, next section (review first), last activity. */
+export function studyState(
+  progress: { material_id: string; section: number; status: string; updated_at: string }[],
+  lessons: { material_id: string; sections_total: number }[],
+  materials: { id: string; title: string }[],
+) {
+  const totals = new Map<string, number>();
+  for (const l of lessons) totals.set(l.material_id, Math.max(totals.get(l.material_id) ?? 0, l.sections_total));
+  const byMat = new Map<string, typeof progress>();
+  for (const p of progress) byMat.set(p.material_id, [...(byMat.get(p.material_id) ?? []), p]);
+  return [...byMat.entries()].flatMap(([id, rows]) => {
+    const total = totals.get(id);
+    const title = materials.find((m) => m.id === id)?.title;
+    if (!total || !title) return [];
+    const status = new Map(rows.map((r) => [r.section, r.status]));
+    const review = rows.find((r) => r.status === 'review');
+    let next = review?.section ?? 1;
+    if (!review) while (status.get(next) === 'understood' && next < total) next++;
+    return [{ materialId: id, title, understood: rows.filter((r) => r.status === 'understood').length, total, next, review: Boolean(review), lastStudied: rows[0]!.updated_at }];
+  });
 }

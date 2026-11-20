@@ -39,6 +39,8 @@ export interface EngineInput {
   projectSteps: { projectId: string; projectName: string; step: NextStep }[];
   pendingGuesses: number;
   hasCourses: boolean;
+  /** Files being studied in Learn mode, most recently studied first. */
+  study?: { materialId: string; title: string; understood: number; total: number; next: number; review: boolean; lastStudied: string }[];
   /** Skills below target, with the next verified resource in their adaptive plan. */
   learning?: { skill: string; estimate: number; target: number; next: { id: string; title: string; source: string; objective: string; exercise: string; inProgress: boolean } | null }[];
 }
@@ -213,6 +215,26 @@ export function candidates(i: EngineInput): Candidate[] {
       due_on: null,
       essential: step.id === 'overdue' || step.id === 'deadline-scope',
       base: step.priority === 'high' ? 80 : step.priority === 'medium' ? 60 : 40,
+    });
+  }
+
+  // Where you left off in Learn mode (most recent file still in progress).
+  const studying = (i.study ?? []).filter((x) => x.understood < x.total).sort((a, b) => b.lastStudied.localeCompare(a.lastStudied))[0];
+  if (studying) {
+    out.push({
+      rule_type: 'study.continue',
+      rule_key: `study:${studying.materialId}:${i.today}`,
+      category: 'academic',
+      kind: 'developmental',
+      title: `Continue studying ${studying.title}`,
+      action: studying.review ? `Revisit section ${studying.next}, which you marked for review, then carry on.` : `Next up: section ${studying.next} of ${studying.total}.`,
+      why: `You've understood ${studying.understood} of ${studying.total} sections so far.`,
+      benefit: 'Steady sections beat cramming the whole file before the exam.',
+      evidence: [`${studying.understood}/${studying.total} sections understood`, `Last studied ${studying.lastStudied.slice(0, 10)}`],
+      est_minutes: 25,
+      due_on: null,
+      essential: false,
+      base: 47,
     });
   }
 

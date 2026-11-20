@@ -1,6 +1,6 @@
 # Status: NEXUS
 
-**Updated:** 2026-11-20 · **Phase:** 2 — Core management (Academics, Finances, Goals & habits live; Projects next)
+**Updated:** 2026-11-20 · **Phase:** 2 complete (Academics, Finances, Goals & habits, Projects) — Phase 3 (Personal context) next
 
 **Live:** https://nexus-theta-peach.vercel.app · **Supabase:** `nexus` (`obccfnhcnnlairctgomt`, eu-west-1)
 
@@ -16,11 +16,12 @@
 - **Academics (Phase 2 slice 1):** migration 0003 (grade bands, terms, courses, assessments); exact GPA/CGPA on the Owner's 4.0 scale; Academics page (terms, courses, deadlines, editable scale); Home "Needs attention" (overdue + next 7 days); export v2 includes academics.
 - **Finances (Phase 2 slice 2):** migration 0004 (accounts, transactions, budgets, savings goals; `account_balances` security-invoker view). Balances computed from opening balance + ledger, never stored. Per-currency totals, no FX. Finances page (record, budgets, accounts, goals, recent); Home "Money this month" with budget alerts; export v3.
 - **Goals & habits (Phase 2 slice 3):** migration 0005 (goals, goal_milestones, habits, habit_checkins). Goal progress = milestones done/total; habit streaks daily or N×/week (Mon–Sun). Goals & habits page; Home "Today's habits" check-off; export v4. Shared `ConfirmDelete` + `useRunner` extracted.
+- **Projects (Phase 2 slice 4):** migration 0006 (projects, members, tasks, milestones, meetings). Assignee must belong to the same project (composite FK). Deterministic health + leadership next steps with evidence (ownership, overdue check-ins, meeting cadence, deadline vs progress, workload imbalance). "Prepare agenda" copies an agenda; nothing is sent. Home shows at-risk projects + your tasks this week. Export v5. Section pages lazy-loaded.
 
 ## Evidence
 | Check | Result |
 |---|---|
-| `npx vitest run` | 14 files, **153/153 passed** (incl. 65 database/RLS, 26 GPA, 13 finance, 11 habits, page renders) |
+| `npx vitest run` | 17 files, **184/184 passed** (incl. 80 database/RLS, 26 GPA, 13 finance, 11 habits, 14 project rules, page renders) |
 | View-leak mutation | Removing `security_invoker` from `account_balances` → isolation test failed ✔ (restored) |
 | Hosted finances check (rolled back) | momo=38750, savings=20000, sees own 3 accounts only, cross-currency transfer denied, write into other user's account denied |
 | Mutation checks | Owner policy → `using (true)`: isolation test failed ✔; migration 0002 removed: 3 privilege tests failed ✔ |
@@ -54,7 +55,7 @@
 ## Known issues and debt
 | ID | Issue | Severity | Repay when |
 |---|---|---|---|
-| K-1 | Single 637 KB JS chunk (181 KB gzip); no route code-splitting | Low | End of Phase 2 |
+| K-1 | ~~Single large JS chunk~~ — fixed: section pages lazy-loaded (main 301 KB + vendor 323 KB; ~182 KB gzip upfront) | — | Done |
 | K-6 | Finances loads the whole ledger at once; fine for years of personal use, would need paging at ~10k transactions | Low | If it gets slow |
 | K-7 | Transactions can be deleted and re-entered but not edited in the UI (DB allows it; audited) | Low | Next finance pass |
 | K-8 | Investments, assets/liabilities beyond account balances, and reports not built yet (spec §2.2) | — | Phase 2 later / Phase 6 |

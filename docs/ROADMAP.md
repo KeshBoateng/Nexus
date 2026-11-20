@@ -11,7 +11,7 @@ Derived from spec §17. Each phase ends with something usable end to end, its te
 - Data export (JSON) — the first piece of acceptance criterion 13
 - **Exit:** sign up → profile exists → edit profile/preferences → export, verified against a real Supabase project.
 
-## Phase 2 — Core management  *(in progress — Academics, Finances, Goals & habits shipped 2026-11-20)*
+## Phase 2 — Core management  *(DONE 2026-11-20 — Academics, Finances, Goals & habits, Projects)*
 Order chosen so each slice is independently usable:
 1. **Academics:** terms, courses (credit hours), assessments, grading scale → GPA/CGPA as pure, tested functions; deadlines.
 2. **Finances:** accounts, transactions (integer minor units, multi-currency, no FX invention), budgets, savings goals; net worth = deterministic SQL view.
@@ -42,14 +42,14 @@ Security audit, E2E tests, performance, backup/restore drill, accessibility audi
 |---|---|---|---|
 | 1 | Personal information persists | 1 | DB layer VERIFIED (PGlite); hosted UNVERIFIED |
 | 2 | Academic & financial calculations accurate | 2 | money primitives + GPA/CGPA VERIFIED (unit tests) |
-| 3 | Modules don't duplicate information | 2 | — |
+| 3 | Modules don't duplicate information | 2 | Projects link to courses (no copy); balances computed not stored |
 | 4 | Inspect & correct memory | 3 | — |
 | 5 | Recommendations explain reasoning | 4 | — |
 | 6 | Feedback influences recommendations | 4 | — |
 | 7 | Verified learning links | 4 | — |
 | 8 | Briefings reflect recorded data | 4 | — |
 | 9 | Notifications on Android PWA | 5 | — |
-| 10 | Team responsibility tracking | 2 | — |
+| 10 | Team responsibility tracking | 2 | VERIFIED (DB tests: same-project assignee FK; rule tests) |
 | 11 | AI failures don't break core | 4 | AI off by default (design) |
 | 12 | User information protected | all | RLS tests VERIFIED for Phase 1 tables |
 | 13 | Export and restore | 1/7 | export built; restore pending |

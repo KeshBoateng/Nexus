@@ -98,11 +98,18 @@ export async function exportMyData(userId: string): Promise<Blob> {
     sb.from('habits').select('*').order('created_at'),
     sb.from('habit_checkins').select('*').order('on_date'),
   ]);
-  const all = [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, savingsGoals, goals, milestones, habits, checkins];
+  const [projects, members, tasks, pMilestones, meetings] = await Promise.all([
+    sb.from('projects').select('*').order('created_at'),
+    sb.from('project_members').select('*').order('created_at'),
+    sb.from('project_tasks').select('*').order('created_at'),
+    sb.from('project_milestones').select('*').order('created_at'),
+    sb.from('meetings').select('*').order('held_on'),
+  ]);
+  const all = [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, savingsGoals, goals, milestones, habits, checkins, projects, members, tasks, pMilestones, meetings];
   for (const r of all) if (r.error) throw r.error;
   const doc = {
     format: 'nexus-export',
-    version: 4,
+    version: 5,
     money_note: 'Amounts ending in _minor are integer minor units (e.g. pesewas for GHS).',
     exported_at: new Date().toISOString(),
     data: {
@@ -120,6 +127,11 @@ export async function exportMyData(userId: string): Promise<Blob> {
       goal_milestones: milestones.data,
       habits: habits.data,
       habit_checkins: checkins.data,
+      projects: projects.data,
+      project_members: members.data,
+      project_tasks: tasks.data,
+      project_milestones: pMilestones.data,
+      meetings: meetings.data,
       audit_logs: audit.data,
     },
   };

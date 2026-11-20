@@ -3,6 +3,9 @@ import { ChevronRight, GraduationCap, Target, Wallet, type LucideIcon } from 'lu
 import { useGoals } from '../goals/api';
 import { HabitRow } from '../goals/HabitRow';
 import { useRunner } from '../../lib/useRunner';
+import { stateOf, useProjects } from '../projects/api';
+import { nextSteps, projectHealth } from '../../lib/projectHealth';
+import { HEALTH_STYLE } from '../projects/healthStyle';
 import { DESTINATIONS } from '../../app/navigation';
 import { useProfile } from '../profile/ProfileProvider';
 import { Panel } from '../../components/ui';
@@ -68,6 +71,7 @@ export function HomePage() {
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
       <TodayPanel tz={tz} />
+      <ProjectsPanel tz={tz} />
       <HabitsPanel tz={tz} />
       <MoneyPanel tz={tz} currency={profile?.default_currency ?? 'GHS'} />
 
@@ -204,6 +208,61 @@ export function MyLifePage() {
   );
 }
 
+/** Projects that are at risk or off track, with their top next step, plus your own tasks due this week. */
+function ProjectsPanel({ tz }: { tz: string }) {
+  const { data } = useProjects();
+  if (!data) return null;
+  const today = todayIn(tz);
+  const week = new Date(Date.parse(`${today}T00:00:00Z`) + 7 * 86_400_000).toISOString().slice(0, 10);
+  const open = data.projects.filter((p) => p.status === 'active' || p.status === 'planning');
+  const flagged = open
+    .map((p) => ({ p, s: stateOf(data, p) }))
+    .map(({ p, s }) => ({ p, h: projectHealth(s, today), step: nextSteps(s, today, 1)[0] }))
+    .filter((x) => x.h === 'at_risk' || x.h === 'off_track');
+  const meIds = new Set(data.members.filter((m) => m.is_me).map((m) => m.id));
+  const myTasks = data.tasks
+    .filter((t) => t.status !== 'done' && t.assignee_member_id && meIds.has(t.assignee_member_id) && t.due_on && t.due_on <= week)
+    .sort((a, b) => (a.due_on! < b.due_on! ? -1 : 1))
+    .slice(0, 5);
+  if (flagged.length === 0 && myTasks.length === 0) return null;
+  const name = (id: string) => data.projects.find((p) => p.id === id)?.name ?? '';
+
+  return (
+    <Panel title="Projects">
+      {flagged.length > 0 && (
+        <ul className="space-y-2">
+          {flagged.map(({ p, h, step }) => (
+            <li key={p.id}>
+              <Link to={`/projects/${p.id}`} className="block rounded-lg py-1 hover:bg-surface-raised">
+                <p className="text-[15px]">
+                  {p.name} <span className={`text-xs ${HEALTH_STYLE[h].cls}`}>· {HEALTH_STYLE[h].label}</span>
+                </p>
+                {step && <p className="text-sm text-text-muted">→ {step.title}</p>}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      {myTasks.length > 0 && (
+        <>
+          <p className={`text-xs text-text-faint ${flagged.length ? 'mt-4' : ''}`}>Your tasks this week</p>
+          <ul className="divide-y divide-border">
+            {myTasks.map((t) => (
+              <li key={t.id} className="flex items-center justify-between gap-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-[15px]">{t.title}</p>
+                  <p className="truncate text-xs text-text-faint">{name(t.project_id)}</p>
+                </div>
+                <span className={`tabular shrink-0 text-xs ${t.due_on! < today ? 'text-danger' : 'text-text-muted'}`}>{t.due_on}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </Panel>
+  );
+}
+
 /** Today's habits with one-tap check-off. */
 function HabitsPanel({ tz }: { tz: string }) {
   const { data, reload } = useGoals();
@@ -288,23 +347,6 @@ export function DevelopmentPage() {
             { name: 'Technical track', phase: 4 },
             { name: 'Leadership and management track', phase: 4 },
             { name: 'Entrepreneurship and business track', phase: 4 },
-          ]}
-        />
-      </Panel>
-    </>
-  );
-}
-
-export function ProjectsPage() {
-  return (
-    <>
-      <PageHeader path="/projects" />
-      <Panel>
-        <Coming
-          items={[
-            { name: 'Projects, tasks and milestones', phase: 2 },
-            { name: 'Team members and responsibility tracking', phase: 2 },
-            { name: 'Leadership coaching', phase: 4 },
           ]}
         />
       </Panel>

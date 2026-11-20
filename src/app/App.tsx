@@ -1,22 +1,28 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import { AuthProvider, useAuth } from '../features/auth/AuthProvider';
 import { SignInPage } from '../features/auth/SignInPage';
 import { NewPasswordPage } from '../features/auth/NewPasswordPage';
 import { ProfileProvider } from '../features/profile/ProfileProvider';
-import { SettingsPage } from '../features/settings/SettingsPage';
-import { AcademicsPage } from '../features/academics/AcademicsPage';
-import { FinancesPage } from '../features/finances/FinancesPage';
-import { GoalsPage } from '../features/goals/GoalsPage';
 import {
   DevelopmentPage,
   HomePage,
   IntelligencePage,
   MyLifePage,
-  ProjectsPage,
 } from '../features/destinations/pages';
 import { supabase } from '../lib/supabase';
 import { AppShell } from './AppShell';
 import { SetupRequired } from './SetupRequired';
+
+// Section pages load on demand so the first screen stays small on phones.
+const SettingsPage = lazy(() => import('../features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const AcademicsPage = lazy(() => import('../features/academics/AcademicsPage').then((m) => ({ default: m.AcademicsPage })));
+const FinancesPage = lazy(() => import('../features/finances/FinancesPage').then((m) => ({ default: m.FinancesPage })));
+const GoalsPage = lazy(() => import('../features/goals/GoalsPage').then((m) => ({ default: m.GoalsPage })));
+const ProjectsListPage = lazy(() => import('../features/projects/ProjectsPages').then((m) => ({ default: m.ProjectsListPage })));
+const ProjectDetailPage = lazy(() => import('../features/projects/ProjectsPages').then((m) => ({ default: m.ProjectDetailPage })));
+
+const page = (el: React.ReactNode) => <Suspense fallback={<p className="text-text-muted">Loading…</p>}>{el}</Suspense>;
 
 function Gate() {
   const { session, loading, recovering } = useAuth();
@@ -35,13 +41,14 @@ function Gate() {
         <Route element={<AppShell />}>
           <Route index element={<HomePage />} />
           <Route path="life" element={<MyLifePage />} />
-          <Route path="life/academics" element={<AcademicsPage />} />
-          <Route path="life/finances" element={<FinancesPage />} />
-          <Route path="life/goals" element={<GoalsPage />} />
+          <Route path="life/academics" element={page(<AcademicsPage />)} />
+          <Route path="life/finances" element={page(<FinancesPage />)} />
+          <Route path="life/goals" element={page(<GoalsPage />)} />
           <Route path="development" element={<DevelopmentPage />} />
-          <Route path="projects" element={<ProjectsPage />} />
+          <Route path="projects" element={page(<ProjectsListPage />)} />
+          <Route path="projects/:id" element={page(<ProjectDetailPage />)} />
           <Route path="intelligence" element={<IntelligencePage />} />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings" element={page(<SettingsPage />)} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

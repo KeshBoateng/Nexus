@@ -105,11 +105,15 @@ export async function exportMyData(userId: string): Promise<Blob> {
     sb.from('project_milestones').select('*').order('created_at'),
     sb.from('meetings').select('*').order('held_on'),
   ]);
-  const all = [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, savingsGoals, goals, milestones, habits, checkins, projects, members, tasks, pMilestones, meetings];
+  const [memories, aiPermissions] = await Promise.all([
+    sb.from('personal_memories').select('*').order('created_at'),
+    sb.from('ai_permissions').select('*').order('category'),
+  ]);
+  const all = [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, savingsGoals, goals, milestones, habits, checkins, projects, members, tasks, pMilestones, meetings, memories, aiPermissions];
   for (const r of all) if (r.error) throw r.error;
   const doc = {
     format: 'nexus-export',
-    version: 5,
+    version: 6,
     money_note: 'Amounts ending in _minor are integer minor units (e.g. pesewas for GHS).',
     exported_at: new Date().toISOString(),
     data: {
@@ -132,6 +136,8 @@ export async function exportMyData(userId: string): Promise<Blob> {
       project_tasks: tasks.data,
       project_milestones: pMilestones.data,
       meetings: meetings.data,
+      personal_memories: memories.data,
+      ai_permissions: aiPermissions.data,
       audit_logs: audit.data,
     },
   };

@@ -353,20 +353,3 @@ export function DevelopmentPage() {
     </>
   );
 }
-
-export function IntelligencePage() {
-  return (
-    <>
-      <PageHeader path="/intelligence" />
-      <Panel>
-        <Coming
-          items={[
-            { name: 'Personal Memory Centre', phase: 3 },
-            { name: 'NEXUS assistant and recommendations', phase: 4 },
-            { name: 'Opportunity Radar', phase: 6 },
-          ]}
-        />
-      </Panel>
-    </>
-  );
-}

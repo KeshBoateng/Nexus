@@ -44,10 +44,10 @@ Security audit, E2E tests, performance, backup/restore drill, accessibility audi
 | 2 | Academic & financial calculations accurate | 2 | money primitives + GPA/CGPA VERIFIED (unit tests) |
 | 3 | Modules don't duplicate information | 2 | Projects link to courses (no copy); balances computed not stored |
 | 4 | Inspect & correct memory | 3 | Built: Memory Centre; DB rules VERIFIED by tests |
-| 5 | Recommendations explain reasoning | 4 | — |
-| 6 | Feedback influences recommendations | 4 | — |
+| 5 | Recommendations explain reasoning | 4 | Built: why + evidence + benefit on every item |
+| 6 | Feedback influences recommendations | 4 | VERIFIED (engine tests: scoring/suppression from feedback) |
 | 7 | Verified learning links | 4 | — |
-| 8 | Briefings reflect recorded data | 4 | — |
+| 8 | Briefings reflect recorded data | 4 | Built: every item derived from records with evidence |
 | 9 | Notifications on Android PWA | 5 | — |
 | 10 | Team responsibility tracking | 2 | VERIFIED (DB tests: same-project assignee FK; rule tests) |
 | 11 | AI failures don't break core | 4 | AI off by default; no core feature calls AI |

@@ -1,0 +1,109 @@
+@import 'tailwindcss';
+
+/*
+ * NEXUS design tokens. Components use semantic tokens only (bg, surface, text, accent…),
+ * never raw colour values, so themes propagate. See docs/DESIGN-SYSTEM.md.
+ */
+
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0d0e11;
+  --surface: #15171c;
+  --surface-raised: #1c1f26;
+  --border: #272b33;
+  --text: #ecebe7;
+  --text-muted: #9a9ca3;
+  --text-faint: #8a8d95;
+  --accent: #d9a54a;
+  --accent-strong: #e8b862;
+  --on-accent: #17130a;
+  --danger: #f07a6a;
+  --success: #6cc49a;
+  --focus: #e8b862;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f6f5f1;
+  --surface: #ffffff;
+  --surface-raised: #efede7;
+  --border: #dedbd2;
+  --text: #17181b;
+  --text-muted: #565961;
+  --text-faint: #6b6e76;
+  --accent: #8a5d14;
+  --accent-strong: #6f4a0f;
+  --on-accent: #ffffff;
+  --danger: #b3372a;
+  --success: #24744f;
+  --focus: #8a5d14;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-on-accent: var(--on-accent);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-rise {
+  animation: rise 320ms var(--ease-out-soft) both;
+}

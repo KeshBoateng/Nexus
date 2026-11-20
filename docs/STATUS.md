@@ -66,6 +66,7 @@
 | K-7 | Transactions can be deleted and re-entered but not edited in the UI (DB allows it; audited) | Low | Next finance pass |
 | K-8 | Investments, assets/liabilities beyond account balances, and reports not built yet (spec §2.2) | — | Phase 2 later / Phase 6 |
 | K-9 | "Periodic reflections" and routines (spec §2.2) not built; reflections fold into weekly reviews | — | Phase 6 |
+| K-11 | ~~PWA update mode 'prompt' without an update button kept users on the first cached build~~ — fixed 2026-11-20 (`2ef71d7`, autoUpdate + skipWaiting). Lesson: verify the deployed app as a returning visitor, not only fresh loads. | — | Done |
 | K-10 | Habit check-ins load only the last ~110 days (enough for displayed streaks; longer streaks would undercount) | Low | If a streak passes ~15 weeks |
 | K-2 | `npm audit` advisories in dev dependencies, not triaged | Low–Unknown | Before Phase 2 ends |
 | K-3 | No restore path for exports | Medium | Phase 7 |

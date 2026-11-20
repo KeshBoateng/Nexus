@@ -119,11 +119,12 @@ export async function exportMyData(userId: string): Promise<Blob> {
     sb.from('learning_resources').select('*').order('created_at'),
     sb.from('learning_progress').select('*').order('created_at'),
   ]);
-  const all = [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, savingsGoals, goals, milestones, habits, checkins, projects, members, tasks, pMilestones, meetings, memories, aiPermissions, recs, recEvents, recFeedback, briefings, skills, skillEvidence, learningResources, learningProgress];
+  const aiRequests = await sb.from('ai_requests').select('*').order('created_at');
+  const all = [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, savingsGoals, goals, milestones, habits, checkins, projects, members, tasks, pMilestones, meetings, memories, aiPermissions, recs, recEvents, recFeedback, briefings, skills, skillEvidence, learningResources, learningProgress, aiRequests];
   for (const r of all) if (r.error) throw r.error;
   const doc = {
     format: 'nexus-export',
-    version: 8,
+    version: 9,
     money_note: 'Amounts ending in _minor are integer minor units (e.g. pesewas for GHS).',
     exported_at: new Date().toISOString(),
     data: {
@@ -156,6 +157,7 @@ export async function exportMyData(userId: string): Promise<Blob> {
       skill_evidence: skillEvidence.data,
       learning_resources: learningResources.data,
       learning_progress: learningProgress.data,
+      ai_requests: aiRequests.data,
       audit_logs: audit.data,
     },
   };

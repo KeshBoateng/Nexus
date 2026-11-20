@@ -8,6 +8,7 @@ import { useRunner, type Run } from '../../lib/useRunner';
 import { useProfile } from '../profile/ProfileProvider';
 import { updatePreferences } from '../profile/api';
 import { fetchHistory } from '../briefing/api';
+import { AskPanel } from './AskPanel';
 import {
   KIND_LABEL,
   MEMORY_KINDS,
@@ -48,13 +49,13 @@ export function IntelligencePage() {
       {!data && !error && <p className="text-text-muted">Loading…</p>}
       {data && (
         <>
+          <AskPanel permissions={data.permissions} />
           {data.memories.length === 0 && <Onboarding run={run} busy={busy} />}
           <MemoryCentre data={data} run={run} busy={busy} />
           <AiAccess data={data} run={run} />
           <RecHistory />
           <Panel title="Coming next">
             <ul className="space-y-2 text-[15px] text-text-muted">
-              <li>Learning plans with verified resources — Phase 4</li>
               <li>Opportunity Radar — Phase 6</li>
             </ul>
           </Panel>
@@ -453,7 +454,7 @@ function AiAccess({ data, run }: { data: IntelData; run: Run }) {
               </p>
             )}
             <p className="mt-2 text-xs text-text-faint">
-              Module summaries (academics, finances…) are added when AI features arrive in Phase 4. <Link to="/settings" className="underline">Settings</Link>
+              Summaries of the other allowed categories (academics, finances…) are computed when you send a message. <Link to="/settings" className="underline">Settings</Link>
             </p>
           </div>
         )}

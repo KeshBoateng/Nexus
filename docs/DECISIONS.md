@@ -15,6 +15,7 @@
 | D-009 | 2026-11-20 | Keep Supabase setup minimal: single user | active |
 | D-010 | 2026-11-20 | Recommendations are rule-based; AI optional on top | active |
 | D-011 | 2026-11-20 | Learning catalog = links verified live; no generated resources | active |
+| D-012 | 2026-11-20 | AI via Edge Function gateway; Groq free tier, not Gemini free tier | active |
 
 ---
 
@@ -78,3 +79,10 @@
 - **Date:** 2026-11-20 · **Status:** active · **Decided by:** agent (Amber), derived from spec §7 ("never fabricate")
 - **Decision:** built-in resources are a curated list whose URLs were fetched and returned HTTP 200 on 2026-11-20; durations are stated only where known. User-added links are shown as "not verified by NEXUS".
 - **Revisit when:** a server-side link checker (Edge Function with SSRF protection) is built to re-verify links periodically.
+
+## D-012 — AI gateway and provider
+- **Date:** 2026-11-20 · **Status:** active · **Decided by:** Owner (add a free provider); agent (Amber: which one, architecture)
+- **Context:** Personal data must not leak; app must not depend on one AI company (spec §15).
+- **Decision:** one Edge Function `ai-chat` calls any OpenAI-compatible API (`AI_BASE_URL`, `AI_MODEL`, `AI_API_KEY` secrets). Default Groq + `openai/gpt-oss-120b` (Groq lists `llama-3.3-70b-versatile` as shut down 2026-08-16 for free tier). Gemini free tier rejected: sources state free-tier content may be used to improve Google products and reviewed by humans.
+- **Consequences:** switching provider = changing secrets. Groq's own docs say inference requests aren't retained by default; whether data is excluded from training was not confirmed from Groq itself (only a secondary source) — ASSUMED. Enable Zero Data Retention in the Groq console for extra safety.
+- **Revisit when:** a provider's terms change, or free limits become too tight.

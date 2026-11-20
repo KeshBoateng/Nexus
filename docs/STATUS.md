@@ -1,6 +1,6 @@
 # Status: NEXUS
 
-**Updated:** 2026-11-20 · **Phase:** 4 nearly complete — recommendations, briefing, Development & learning live; optional AI provider pending Owner decision
+**Updated:** 2026-11-20 · **Phase:** 4 complete in code — optional AI assistant deployed; waiting for the Owner's Groq key
 
 **Live:** https://nexus-theta-peach.vercel.app · **Supabase:** `nexus` (`obccfnhcnnlairctgomt`, eu-west-1)
 
@@ -20,11 +20,12 @@
 - **Personal context (Phase 3):** migration 0007 (personal_memories, ai_permissions). DB enforces: AI-originated facts/preferences need user confirmation; sensitive never AI-visible; source immutable; permissions default off. `buildAiContext()` is the single gate for future AI calls. Intelligence page: onboarding, Memory Centre (correct/delete/hide/sensitive/confirm-reject guesses), AI master switch + per-category toggles + exact preview. Export v6.
 - **Recommendations (Phase 4a):** migration 0008 (recommendations, events, feedback, daily_briefings). Deterministic rules across all modules; feedback learning (not useful −15, very useful +10, already know hides 14 d, not now 3 d); essential obligations floor 70. Daily briefing (3–5, max 2 per category) at top of Home with why/evidence, Done/On it/Not now/Applied and ratings. History in Intelligence. Export v7.
 - **Development & learning (Phase 4b):** migration 0009 (skills, skill_evidence, learning_resources, learning_progress). Proficiency estimated from evidence only (single item ≤ Beginner). Catalog of 33 free resources verified live 2026-11-20. Adaptive plans skip intro once Developing. Daily learning step in the briefing. Development page. Export v8.
+- **AI assistant (Phase 4c, optional):** Edge Function `ai-chat` (v2, provider-neutral, defaults Groq `openai/gpt-oss-120b`). Server enforces sign-in, AI switch, per-category permissions (same filter file as the app preview, test-checked), 50 msgs/day; conversation not stored; key only in Edge secrets. Migration 0010 `ai_requests` log. "Ask NEXUS" panel in Intelligence. Export v9. Gemini free tier rejected (free-tier prompts may be used to improve Google products / human review).
 
 ## Evidence
 | Check | Result |
 |---|---|
-| `npx vitest run` | 26 files, **244/244 passed** (incl. 114 database/RLS, 26 GPA, 13 finance, 11 habits, 14 project rules, 4 AI gate, 10 recommendation engine, 8 proficiency/catalog, page renders) |
+| `npx vitest run` | 27 files, **246/246 passed** (incl. 114 database/RLS, 26 GPA, 13 finance, 11 habits, 14 project rules, 4 AI gate, 10 recommendation engine, 8 proficiency/catalog, page renders) |
 | View-leak mutation | Removing `security_invoker` from `account_balances` → isolation test failed ✔ (restored) |
 | Hosted finances check (rolled back) | momo=38750, savings=20000, sees own 3 accounts only, cross-currency transfer denied, write into other user's account denied |
 | Mutation checks | Owner policy → `using (true)`: isolation test failed ✔; migration 0002 removed: 3 privilege tests failed ✔ |
@@ -37,6 +38,7 @@
 | Production URL | `/`, `/settings`, manifest, `sw.js`, icon → 200; security headers present; sign-in screen renders (env vars baked in) |
 
 ## Not verified
+- AI assistant end to end (no key yet). Probed: unauthenticated and fake-token calls → 401; CORS allows the Vercel origin.
 - Signed-in screens (Home, Academics, Settings) in a real browser on production — the agent can't sign in as the Owner; Academics is covered by a render test only.
 - Mark bands below A (5-mark steps) — ASSUMED from "go on from there"; editable in Academics → Grading scale.
 - PWA install on Android; SVG-only icon may need PNGs.
@@ -49,7 +51,7 @@
 - Optional for the Owner: enable 2FA on Vercel.
 
 ## Open questions
-- **AI provider (optional):** which free-tier provider, if any, and the Owner creates its API key. Blocks only the optional AI layer; everything else works without it.
+- **AI key:** Owner creates a Groq API key and stores it as Edge Function secret `AI_API_KEY` (Supabase dashboard). Agent must not handle the key.
 1. **Letter-grade → point mapping** for your school's 4.0 scale (e.g. A=4.0, B+=3.5, B=3.0 … and the mark ranges) — blocks Phase 2 Academics seed.
 
 ## Confirmed

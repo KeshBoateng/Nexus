@@ -1,0 +1,22 @@
+// @vitest-environment node
+import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+describe('ai-chat Edge Function', () => {
+  it('uses exactly the same context filter as the app preview', () => {
+    const app = readFileSync(join(process.cwd(), 'src/lib/aiContext.ts'), 'utf8');
+    const fn = readFileSync(join(process.cwd(), 'supabase/functions/ai-chat/aiContext.ts'), 'utf8');
+    expect(fn).toBe(app);
+  });
+
+  it('enforces consent, auth, limits and keeps the key server-side', () => {
+    const src = readFileSync(join(process.cwd(), 'supabase/functions/ai-chat/index.ts'), 'utf8');
+    expect(src).toContain('auth.getUser(token)');
+    expect(src).toContain("if (!prefs.data.ai_enabled)");
+    expect(src).toContain('buildAiContext(');
+    expect(src).toContain('DAILY_LIMIT');
+    expect(src).toContain("Deno.env.get('AI_API_KEY')");
+    expect(src).not.toMatch(/gsk_[A-Za-z0-9]{10,}/); // no Groq key committed
+  });
+});

@@ -9,7 +9,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'prompt',
+      // New versions activate on their own. ('prompt' needs an in-app update button, which
+      // didn't exist — users stayed on the first cached version. Fixed 2026-11-20, see K-11.)
+      registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
       manifest: {
         name: 'NEXUS',
@@ -27,6 +29,9 @@ export default defineConfig({
         // authenticated data caching is handled deliberately in a later phase (IndexedDB).
         globPatterns: ['**/*.{js,css,html,svg,woff2}'],
         navigateFallback: '/index.html',
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
       },
     }),
   ],

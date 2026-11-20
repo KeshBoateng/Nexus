@@ -29,19 +29,18 @@
 - PWA install on Android; SVG-only icon may need PNGs.
 - Colour contrast measured formally.
 
-## Owner actions needed (Supabase dashboard → project `nexus`)
-1. **Authentication → URL Configuration:** Site URL = `https://nexus-theta-peach.vercel.app`; add `http://localhost:5173` to Redirect URLs. *(Without this, confirmation links point to localhost.)*
-2. **Authentication → Providers → Email / Passwords:** minimum length 10; leaked-password protection if available.
-3. **Vercel:** enable 2FA on the account (Vercel CLI recommended it).
-4. **Vercel → project `nexus` → Settings → Git → Connect Git Repository → KeshBoateng/Nexus** (grant the Vercel GitHub app access to the repo when asked). Until then, deploy with `npx vercel deploy --prod`.
+## Hosting setup (done 2026-11-20, agent via Chrome)
+- Supabase Site URL `https://nexus-theta-peach.vercel.app`; Redirect URLs `https://nexus-theta-peach.vercel.app/**`, `http://localhost:5173/**` — VERIFIED after reload.
+- Vercel GitHub app granted access to `KeshBoateng/Nexus`; Vercel project `nexus` connected to the repo — pushes to `main` deploy to production.
+- Supabase server-side password minimum left at default — Owner decision D-009 (single user; keep setup simple).
+- Optional for the Owner: enable 2FA on Vercel.
 
 ## Open questions
 1. **Letter-grade → point mapping** for your school's 4.0 scale (e.g. A=4.0, B+=3.5, B=3.0 … and the mark ranges) — blocks Phase 2 Academics seed.
-2. ~~Git~~ — resolved: repo https://github.com/KeshBoateng/Nexus (branch `main`). Vercel ↔ GitHub link pending Owner action 4 below.
 
-## Assumptions awaiting confirmation
-- Single primary user; team mates are records, not accounts.
-- Default timezone `Africa/Accra`, currency GHS; password minimum 10.
+## Confirmed
+- Single user (the Owner) — confirmed 2026-11-20. Team mates are records, not accounts.
+- Default timezone `Africa/Accra`, currency GHS.
 
 ## Known issues and debt
 | ID | Issue | Severity | Repay when |

@@ -12,6 +12,7 @@
 | D-006 | 2026-11-20 | AI opt-in, off by default; server-side only | active |
 | D-007 | 2026-11-20 | Academics use a 4.0 GPA scale, stored as data | active |
 | D-008 | 2026-11-20 | Host the PWA on Vercel (free Hobby plan) | active |
+| D-009 | 2026-11-20 | Keep Supabase setup minimal: single user | active |
 
 ---
 
@@ -58,3 +59,10 @@
 - **Date:** 2026-11-20 · **Status:** active · **Decided by:** Owner
 - **Decision:** static Vite build deployed to Vercel (Hobby, free). `vercel.json` sets SPA rewrites, no-cache on `sw.js`, and baseline security headers. Only public `VITE_` variables are set in Vercel.
 - **Consequences:** Vercel Hobby is for non-commercial use — fine for a personal tool. A CSP header is deferred to Phase 7.
+
+## D-009 — Keep Supabase setup minimal
+- **Date:** 2026-11-20 · **Status:** active · **Decided by:** Owner
+- **Context:** NEXUS is a personal project with exactly one user (the Owner).
+- **Decision:** no extra hosted Auth hardening (server-side password policy, leaked-password checks, etc.) beyond defaults. Row Level Security stays on every table — it is what keeps the data private on a public API and costs nothing to keep.
+- **Consequences:** less dashboard configuration; the app's own 10-character rule still applies at sign-up.
+- **Revisit when:** anyone besides the Owner gets an account.

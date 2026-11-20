@@ -81,17 +81,29 @@ export async function updatePreferences(userId: string, patch: PreferencesUpdate
 /** Everything the user owns, as one JSON document. Extended as modules are added. */
 export async function exportMyData(userId: string): Promise<Blob> {
   const sb = requireSupabase();
-  const [profile, preferences, audit] = await Promise.all([
+  const [profile, preferences, audit, bands, terms, courses, assessments] = await Promise.all([
     sb.from('profiles').select('*').eq('id', userId).single(),
     sb.from('user_preferences').select('*').eq('user_id', userId).single(),
     sb.from('audit_logs').select('*').eq('user_id', userId).order('created_at'),
+    sb.from('grade_bands').select('*').order('min_mark', { ascending: false }),
+    sb.from('academic_terms').select('*').order('created_at'),
+    sb.from('courses').select('*').order('created_at'),
+    sb.from('assessments').select('*').order('created_at'),
   ]);
-  for (const r of [profile, preferences, audit]) if (r.error) throw r.error;
+  for (const r of [profile, preferences, audit, bands, terms, courses, assessments]) if (r.error) throw r.error;
   const doc = {
     format: 'nexus-export',
-    version: 1,
+    version: 2,
     exported_at: new Date().toISOString(),
-    data: { profile: profile.data, user_preferences: preferences.data, audit_logs: audit.data },
+    data: {
+      profile: profile.data,
+      user_preferences: preferences.data,
+      grade_bands: bands.data,
+      academic_terms: terms.data,
+      courses: courses.data,
+      assessments: assessments.data,
+      audit_logs: audit.data,
+    },
   };
   return new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
 }

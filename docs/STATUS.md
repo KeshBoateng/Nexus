@@ -27,11 +27,12 @@
 - **Phase 6:** migration 0013 (weekly_reviews, opportunities; link_status server-only, reset on URL change). Weekly review page (records snapshot + reflection); Insights panel (GPA by term, monthly spend, habit consistency); Opportunity Radar (tracker + relevance to skills/goals + `verify-link` Edge Function with SSRF protections + 7-day/1-day deadline reminders via `notify` v2; weekly note links to /review); offline viewing (IndexedDB per user, banner, writes need connection, cleared on sign-out). Export v11.
 
 - **Study Library (2026-11-20):** migrations 0014 (study_materials with full-text search, study_analyses, 'study' AI permission) and 0015 (private `study` bucket, per-user folder policies, 25 MB, document types only). Text extracted on-device (pdf.js, mammoth, JSZip; lazy-loaded). Auto-filing by course code (filename any case; body text needs capitalised code seen twice). Edge Function `study-analyze`: consent-checked, document text only, chunked for long files (≤5 parts), shares 50/day cap, JSON validated. UI at My Life → Study Library: upload many files, search, course/topic edit, open file (5-min signed URL), study pack (summary, concepts, flashcards, practice questions). Export v12 (records + extracted text; files stay in storage).
+- **Study packs, paced (2026-11-20):** first real run hit Groq free-tier 429 ("TPM limit 8000"; three calls in ~3 s). Fixed: migration 0016 `study_notes` saves each part's notes; `study-analyze` v2 uses 7k-char parts, waits out rate limits within a 100 s budget or returns `in_progress` + `retry_after`; the app keeps calling with a countdown until done. Rate-limited calls aren't counted against the daily cap.
 
 ## Evidence
 | Check | Result |
 |---|---|
-| `npx vitest run` | 36 files, **309/309 passed** (incl. 114 database/RLS, 26 GPA, 13 finance, 11 habits, 14 project rules, 4 AI gate, 10 recommendation engine, 8 proficiency/catalog, page renders) |
+| `npx vitest run` | 36 files, **311/311 passed** (incl. 114 database/RLS, 26 GPA, 13 finance, 11 habits, 14 project rules, 4 AI gate, 10 recommendation engine, 8 proficiency/catalog, page renders) |
 | View-leak mutation | Removing `security_invoker` from `account_balances` → isolation test failed ✔ (restored) |
 | Hosted finances check (rolled back) | momo=38750, savings=20000, sees own 3 accounts only, cross-currency transfer denied, write into other user's account denied |
 | Mutation checks | Owner policy → `using (true)`: isolation test failed ✔; migration 0002 removed: 3 privilege tests failed ✔ |

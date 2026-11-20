@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import JSZip from 'jszip';
 import { extractText } from './extract';
@@ -50,5 +50,29 @@ describe('StudyPack', () => {
     expect(screen.queryByText('Without it the calls never end.')).not.toBeInTheDocument();
     fireEvent.click(screen.getByText('Show answer'));
     expect(screen.getByText('Without it the calls never end.')).toBeInTheDocument();
+  });
+});
+
+describe('analyse (resumable)', () => {
+  it('keeps going through rate-limit pauses until the pack is done', async () => {
+    vi.useFakeTimers();
+    const responses = [
+      { data: { status: 'in_progress', done: 1, total: 4, retry_after: 6 }, error: null },
+      { data: { status: 'in_progress', done: 3, total: 4, retry_after: 5 }, error: null },
+      { data: { status: 'done', partial: false }, error: null },
+    ];
+    const invoke = vi.fn(async () => responses.shift()!);
+    vi.doMock('../../lib/supabase', () => ({ requireSupabase: () => ({ functions: { invoke } }) }));
+    vi.resetModules();
+    const { analyse } = await import('./api');
+    const seen: string[] = [];
+    const p = analyse('00000000-0000-4000-8000-000000000001', (x) => seen.push(`${x.done}/${x.total}:${x.waiting}`));
+    await vi.runAllTimersAsync();
+    await expect(p).resolves.toEqual({ partial: false });
+    expect(invoke).toHaveBeenCalledTimes(3);
+    expect(seen[0]).toBe('1/4:6');
+    expect(seen).toContain('3/4:0');
+    vi.useRealTimers();
+    vi.doUnmock('../../lib/supabase');
   });
 });

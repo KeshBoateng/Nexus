@@ -126,19 +126,40 @@ export async function openMaterial(m: Material): Promise<string> {
   return data.signedUrl;
 }
 
-export async function analyse(id: string): Promise<{ partial: boolean }> {
-  const { data, error } = await sb().functions.invoke('study-analyze', { body: { id } });
-  if (error) {
-    let msg = 'Analysis is unavailable right now.';
-    try {
-      const body = await (error as { context?: Response }).context?.json();
-      if (body?.error) msg = body.error;
-    } catch {
-      /* keep generic */
+export interface AnalyseProgress {
+  done: number;
+  total: number;
+  waiting: number; // seconds until the next attempt (provider rate limit)
+}
+
+/**
+ * Builds a study pack. Long files are processed in parts across several calls; when the AI
+ * provider asks us to slow down, wait the advised time and continue. Finished parts are kept
+ * server-side, so nothing is redone.
+ */
+export async function analyse(id: string, onProgress?: (p: AnalyseProgress) => void, maxRounds = 20): Promise<{ partial: boolean }> {
+  for (let round = 0; round < maxRounds; round++) {
+    const { data, error } = await sb().functions.invoke('study-analyze', { body: { id } });
+    if (error) {
+      let msg = 'Analysis is unavailable right now.';
+      try {
+        const body = await (error as { context?: Response }).context?.json();
+        if (body?.error) msg = body.error;
+      } catch {
+        /* keep generic */
+      }
+      throw new Error(msg);
     }
-    throw new Error(msg);
+    const d = data as { status?: string; partial?: boolean; done?: number; total?: number; retry_after?: number };
+    if (d.status !== 'in_progress') return { partial: Boolean(d.partial) };
+    const wait = Math.min(Math.max(d.retry_after ?? 20, 5), 75);
+    for (let left = wait; left > 0; left--) {
+      onProgress?.({ done: d.done ?? 0, total: d.total ?? 1, waiting: left });
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    onProgress?.({ done: d.done ?? 0, total: d.total ?? 1, waiting: 0 });
   }
-  return { partial: Boolean((data as { partial?: boolean }).partial) };
+  throw new Error('Still working after many rounds — try again later; finished parts are kept.');
 }
 
 export async function setStudyPermission(allowed: boolean) {

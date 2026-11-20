@@ -174,6 +174,7 @@ function MaterialRow({ m, data, analysis, onChange }: { m: Material; data: Study
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: 'danger' | 'success'; text: string } | null>(null);
   const [topic, setTopic] = useState(m.topic ?? '');
+  const [progress, setProgress] = useState<string | null>(null);
 
   async function run(fn: () => Promise<string | void>) {
     setBusy(true);
@@ -227,13 +228,30 @@ function MaterialRow({ m, data, analysis, onChange }: { m: Material; data: Study
               <ExternalLink className="size-4" aria-hidden /> Open file
             </Button>
             {m.status !== 'no_text' && data.aiEnabled && data.studyAllowed && (
-              <Button className="h-9 px-3 text-sm" disabled={busy} onClick={() => run(async () => { const r = await analyse(m.id); return r.partial ? 'Study pack ready (long file: first part only).' : 'Study pack ready.'; })}>
+              <Button className="h-9 px-3 text-sm" disabled={busy} onClick={() =>
+                  run(async () => {
+                    setProgress('Starting…');
+                    try {
+                      const r = await analyse(m.id, (p) =>
+                        setProgress(
+                          p.waiting > 0
+                            ? `Step ${p.done} of ${p.total} done · AI limit reached, continuing in ${p.waiting}s (keep this page open)`
+                            : `Step ${p.done} of ${p.total} done · continuing…`,
+                        ),
+                      );
+                      return r.partial ? 'Study pack ready (very long file: covers the first part).' : 'Study pack ready.';
+                    } finally {
+                      setProgress(null);
+                    }
+                  })
+                }>
                 <Sparkles className="size-4" aria-hidden /> {busy ? 'Working…' : analysis ? 'Rebuild study pack' : 'Make study pack'}
               </Button>
             )}
             <span className="flex-1" />
             <ConfirmDelete label={`Delete ${m.title}`} onConfirm={() => run(() => deleteMaterial(m))} />
           </div>
+          {progress && <p className="text-sm text-text-muted" role="status">{progress}</p>}
           {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
           {analysis && <StudyPack a={analysis} />}
         </div>

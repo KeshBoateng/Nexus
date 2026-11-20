@@ -82,3 +82,18 @@ describe('study_analyses', () => {
     expect(rows[0]!.allowed).toBe(false);
   });
 });
+
+describe('study_notes (resumable generation)', () => {
+  it('saves each part once, owner only, and goes with the material', async () => {
+    const m = await asUser(db, alice, async (tx) =>
+      (await tx.query<{ id: string }>(`insert into public.study_materials (title, file_path, mime, size_bytes) values ('Long', $1, 'application/pdf', 10) returning id`, [path(alice)])).rows[0]!.id,
+    );
+    await asUser(db, alice, (tx) => tx.query(`insert into public.study_notes (material_id, part, parts_total, notes) values ($1, 1, 3, '- point')`, [m]));
+    await expect(asUser(db, alice, (tx) => tx.query(`insert into public.study_notes (material_id, part, parts_total, notes) values ($1, 1, 3, 'again')`, [m]))).rejects.toThrow(/study_notes_once/);
+    await expect(asUser(db, bob, (tx) => tx.query(`insert into public.study_notes (material_id, part, parts_total, notes) values ($1, 2, 3, 'x')`, [m]))).rejects.toThrow(/foreign key/);
+    await expect(asUser(db, alice, (tx) => tx.query(`update public.study_notes set notes = 'x' where material_id = $1`, [m]))).rejects.toThrow(/permission denied/);
+    await asUser(db, alice, (tx) => tx.query(`delete from public.study_materials where id = $1`, [m]));
+    const { rows } = await db.query<{ n: number }>(`select count(*)::int as n from public.study_notes where material_id = $1`, [m]);
+    expect(rows[0]!.n).toBe(0);
+  });
+});

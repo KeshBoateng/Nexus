@@ -1,31 +1,35 @@
 # Status: NEXUS
 
-**Updated:** 2026-11-20 · **Phase:** 1 — Foundation (deployed; awaiting Owner's sign-up test)
+**Updated:** 2026-11-20 · **Phase:** 2 — Core management (Academics live; Finances next)
 
 **Live:** https://nexus-theta-peach.vercel.app · **Supabase:** `nexus` (`obccfnhcnnlairctgomt`, eu-west-1)
 
 ## Done
-- Project at `C:\NEXUS` under Forge; git initialised (nothing committed — awaiting Owner's OK).
+- Project at `C:\NEXUS` under Forge; repo github.com/KeshBoateng/Nexus; pushes to `main` auto-deploy.
 - Tooling: Vite 8, React 19, TS 5.9, Tailwind 4, vite-plugin-pwa, Vitest, ESLint, PGlite. Exact versions pinned.
 - Migrations 0001 (foundation) and 0002 (function privilege lockdown) — applied locally in tests and on the hosted project.
 - App: setup screen, sign-in / sign-up / reset / new password, five-destination shell, Settings (profile, preferences, AI opt-in), JSON export.
 - Money module; docs (PROJECT, ROADMAP, ARCHITECTURE, DATABASE, THREAT-MODEL, DESIGN-SYSTEM, SETUP, DECISIONS D-001…D-008).
 - Supabase project `nexus` created (free). To stay within the 2-active-project free limit, **`sentinel` was paused** at the Owner's request (data kept; restore from the dashboard).
 - Vercel project `nexus` linked and deployed to production with public env vars (production + preview).
+- Owner signed up and confirmed their email on production (2026-11-20).
+- **Academics (Phase 2 slice 1):** migration 0003 (grade bands, terms, courses, assessments); exact GPA/CGPA on the Owner's 4.0 scale; Academics page (terms, courses, deadlines, editable scale); Home "Needs attention" (overdue + next 7 days); export v2 includes academics.
 
 ## Evidence
 | Check | Result |
 |---|---|
-| `npx vitest run` | 4 files, **49/49 passed** (17 database/RLS tests) |
+| `npx vitest run` | 8 files, **97/97 passed** (incl. 35 database/RLS, 26 GPA, Academics page render) |
 | Mutation checks | Owner policy → `using (true)`: isolation test failed ✔; migration 0002 removed: 3 privilege tests failed ✔ |
 | `npx tsc -b`, `npx eslint .`, `npm run build` | all exit 0; JS 169 KB gzip |
 | Hosted RLS check (rolled-back transaction) | profiles_created=2, prefs_ai_off=2, a_sees_profiles=1, a_updates_b=0, a_updates_self=1, change_owner=denied, audit_insert=denied, a_sees_others_audit=0, anon_read=denied; DB left with 0 users afterwards |
-| Supabase security advisors | 4 warnings after 0001 → **0** after 0002 |
+| Supabase security advisors | 0 table/function warnings after 0003; only "leaked password protection" (waived, D-009) |
+| Hosted academics check (rolled back) | own_course=1, attach to another user's term=denied, sees only own terms=1 |
+| Auto-deploy of `0b1eabd` | Production Ready in ~34 s; `/life/academics` → 200 |
 | Production URL | `/`, `/settings`, manifest, `sw.js`, icon → 200; security headers present; sign-in screen renders (env vars baked in) |
 
 ## Not verified
-- Real sign-up → email confirmation → Settings edit → export on production (needs the Owner's own email).
-- Signed-in shell and Settings rendered in a browser.
+- Signed-in screens (Home, Academics, Settings) in a real browser on production — the agent can't sign in as the Owner; Academics is covered by a render test only.
+- Mark bands below A (5-mark steps) — ASSUMED from "go on from there"; editable in Academics → Grading scale.
 - PWA install on Android; SVG-only icon may need PNGs.
 - Colour contrast measured formally.
 

@@ -1,11 +1,14 @@
 import { Link } from 'react-router';
-import { ChevronRight, GraduationCap } from 'lucide-react';
+import { ChevronRight, GraduationCap, Wallet, type LucideIcon } from 'lucide-react';
 import { DESTINATIONS } from '../../app/navigation';
 import { useProfile } from '../profile/ProfileProvider';
 import { Panel } from '../../components/ui';
 import { useAcademics } from '../academics/useAcademics';
+import { useFinances } from '../finances/api';
 import { computeGpa, formatGpa } from '../../lib/gpa';
-import { describeDue } from '../../lib/dates';
+import { describeDue, todayIn } from '../../lib/dates';
+import { budgetProgress, monthKey, monthTotals, netWorthByCurrency, spendingByCategory } from '../../lib/finance';
+import { formatMoney } from '../../lib/money';
 
 /**
  * Phase 1 destinations. They are honest about what exists: no sample data, no fake charts.
@@ -62,6 +65,7 @@ export function HomePage() {
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
       <TodayPanel tz={tz} />
+      <MoneyPanel tz={tz} currency={profile?.default_currency ?? 'GHS'} />
 
       {!name && (
         <Panel title="Finish your profile">
@@ -134,39 +138,99 @@ function TodayPanel({ tz }: { tz: string }) {
   );
 }
 
+function ModuleCard({ to, icon: Icon, title, sub, figureLabel, figure }: { to: string; icon: LucideIcon; title: string; sub: string; figureLabel: string; figure: string }) {
+  return (
+    <Link to={to} className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-accent">
+      <Icon className="size-6 shrink-0 text-accent" strokeWidth={1.75} aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="text-[17px] font-semibold tracking-tight">{title}</p>
+        <p className="truncate text-sm text-text-muted">{sub}</p>
+      </div>
+      <div className="text-right">
+        <p className="text-xs text-text-faint">{figureLabel}</p>
+        <p className="tabular text-[19px] font-semibold">{figure}</p>
+      </div>
+      <ChevronRight className="size-5 shrink-0 text-text-faint" aria-hidden />
+    </Link>
+  );
+}
+
 export function MyLifePage() {
   const { data } = useAcademics();
+  const { data: fin } = useFinances();
+  const { profile } = useProfile();
+  const currency = profile?.default_currency ?? 'GHS';
   const cgpa = data ? formatGpa(computeGpa(data.courses, data.bands).gpa) : '…';
   const open = data?.assessments.filter((a) => !a.completed_at).length ?? 0;
+  const worth = fin
+    ? formatMoney(
+        netWorthByCurrency(fin.accounts.map((a) => ({ currency: a.currency, balance_minor: fin.balances.get(a.id) ?? 0 })))[currency] ?? 0,
+        currency,
+      )
+    : '…';
   return (
     <div className="space-y-4">
       <PageHeader path="/life" />
-      <Link
+      <ModuleCard
         to="/life/academics"
-        className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-accent"
-      >
-        <GraduationCap className="size-6 text-accent" strokeWidth={1.75} aria-hidden />
-        <div className="flex-1">
-          <p className="text-[17px] font-semibold tracking-tight">Academics</p>
-          <p className="text-sm text-text-muted">
-            {open > 0 ? `${open} open deadline${open === 1 ? '' : 's'}` : 'Terms, courses, deadlines'}
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-xs text-text-faint">CGPA</p>
-          <p className="tabular text-[22px] font-semibold">{cgpa}</p>
-        </div>
-        <ChevronRight className="size-5 text-text-faint" aria-hidden />
-      </Link>
+        icon={GraduationCap}
+        title="Academics"
+        sub={open > 0 ? `${open} open deadline${open === 1 ? '' : 's'}` : 'Terms, courses, deadlines'}
+        figureLabel="CGPA"
+        figure={cgpa}
+      />
+      <ModuleCard
+        to="/life/finances"
+        icon={Wallet}
+        title="Finances"
+        sub={fin && fin.accounts.length > 0 ? `${fin.accounts.filter((a) => !a.archived_at).length} accounts` : 'Accounts, spending, budgets'}
+        figureLabel="Net worth"
+        figure={worth}
+      />
       <Panel>
-        <Coming
-          items={[
-            { name: 'Finances — accounts, transactions, budgets (GHS)', phase: 2 },
-            { name: 'Goals and habits', phase: 2 },
-          ]}
-        />
+        <Coming items={[{ name: 'Goals and habits', phase: 2 }]} />
       </Panel>
     </div>
+  );
+}
+
+/** Month spending and budgets at or over 80%, from recorded transactions only. */
+function MoneyPanel({ tz, currency }: { tz: string; currency: string }) {
+  const { data } = useFinances();
+  if (!data || data.accounts.length === 0) return null;
+  const month = monthKey(todayIn(tz));
+  const byId = new Map(data.accounts.map((a) => [a.id, a]));
+  const totals = monthTotals(data.transactions, byId, month);
+  const spending = spendingByCategory(data.transactions, byId, month, currency);
+  const alerts = data.budgets
+    .filter((b) => b.currency === currency)
+    .map((b) => ({ b, p: budgetProgress(b.monthly_limit_minor, spending.find((s) => s.category === b.category)?.amount_minor ?? 0) }))
+    .filter(({ p }) => p.status !== 'ok');
+  return (
+    <Panel
+      title="Money this month"
+      action={
+        <Link to="/life/finances" className="text-sm text-text-muted hover:text-text">
+          Open
+        </Link>
+      }
+    >
+      <p className="tabular text-[15px]">
+        <span className="text-text-muted">Spent </span>
+        {formatMoney(totals.expense[currency] ?? 0, currency)}
+        <span className="text-text-muted"> · In </span>
+        {formatMoney(totals.income[currency] ?? 0, currency)}
+      </p>
+      {alerts.length > 0 && (
+        <ul className="mt-3 space-y-1">
+          {alerts.map(({ b, p }) => (
+            <li key={b.id} className={`text-sm ${p.status === 'over' ? 'text-danger' : 'text-accent'}`}>
+              {b.category}: {p.status === 'over' ? `over budget by ${formatMoney(-p.remaining_minor, currency)}` : `${p.percent}% of budget used`}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
   );
 }
 

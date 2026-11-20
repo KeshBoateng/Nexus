@@ -2,6 +2,11 @@
 
 const DAY = 86_400_000;
 
+/** Today's calendar date (YYYY-MM-DD) in the user's timezone. */
+export function todayIn(timeZone = 'Africa/Accra', now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+}
+
 /** `<input type="datetime-local">` value (browser local time) → ISO string, or null when empty. */
 export function localInputToIso(value: string): string | null {
   if (!value) return null;

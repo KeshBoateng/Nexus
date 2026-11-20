@@ -5,6 +5,7 @@ import { NewPasswordPage } from '../features/auth/NewPasswordPage';
 import { ProfileProvider } from '../features/profile/ProfileProvider';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { AcademicsPage } from '../features/academics/AcademicsPage';
+import { FinancesPage } from '../features/finances/FinancesPage';
 import {
   DevelopmentPage,
   HomePage,
@@ -34,6 +35,7 @@ function Gate() {
           <Route index element={<HomePage />} />
           <Route path="life" element={<MyLifePage />} />
           <Route path="life/academics" element={<AcademicsPage />} />
+          <Route path="life/finances" element={<FinancesPage />} />
           <Route path="development" element={<DevelopmentPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="intelligence" element={<IntelligencePage />} />

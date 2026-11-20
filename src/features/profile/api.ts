@@ -81,7 +81,7 @@ export async function updatePreferences(userId: string, patch: PreferencesUpdate
 /** Everything the user owns, as one JSON document. Extended as modules are added. */
 export async function exportMyData(userId: string): Promise<Blob> {
   const sb = requireSupabase();
-  const [profile, preferences, audit, bands, terms, courses, assessments] = await Promise.all([
+  const [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, goals] = await Promise.all([
     sb.from('profiles').select('*').eq('id', userId).single(),
     sb.from('user_preferences').select('*').eq('user_id', userId).single(),
     sb.from('audit_logs').select('*').eq('user_id', userId).order('created_at'),
@@ -89,11 +89,17 @@ export async function exportMyData(userId: string): Promise<Blob> {
     sb.from('academic_terms').select('*').order('created_at'),
     sb.from('courses').select('*').order('created_at'),
     sb.from('assessments').select('*').order('created_at'),
+    sb.from('financial_accounts').select('*').order('created_at'),
+    sb.from('transactions').select('*').order('occurred_on'),
+    sb.from('budgets').select('*').order('category'),
+    sb.from('savings_goals').select('*').order('created_at'),
   ]);
-  for (const r of [profile, preferences, audit, bands, terms, courses, assessments]) if (r.error) throw r.error;
+  for (const r of [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, goals])
+    if (r.error) throw r.error;
   const doc = {
     format: 'nexus-export',
-    version: 2,
+    version: 3,
+    money_note: 'Amounts ending in _minor are integer minor units (e.g. pesewas for GHS).',
     exported_at: new Date().toISOString(),
     data: {
       profile: profile.data,
@@ -102,6 +108,10 @@ export async function exportMyData(userId: string): Promise<Blob> {
       academic_terms: terms.data,
       courses: courses.data,
       assessments: assessments.data,
+      financial_accounts: accounts.data,
+      transactions: transactions.data,
+      budgets: budgets.data,
+      savings_goals: goals.data,
       audit_logs: audit.data,
     },
   };

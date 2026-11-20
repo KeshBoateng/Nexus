@@ -11,7 +11,7 @@ Derived from spec §17. Each phase ends with something usable end to end, its te
 - Data export (JSON) — the first piece of acceptance criterion 13
 - **Exit:** sign up → profile exists → edit profile/preferences → export, verified against a real Supabase project.
 
-## Phase 2 — Core management
+## Phase 2 — Core management  *(in progress — Academics shipped 2026-11-20)*
 Order chosen so each slice is independently usable:
 1. **Academics:** terms, courses (credit hours), assessments, grading scale → GPA/CGPA as pure, tested functions; deadlines.
 2. **Finances:** accounts, transactions (integer minor units, multi-currency, no FX invention), budgets, savings goals; net worth = deterministic SQL view.
@@ -41,7 +41,7 @@ Security audit, E2E tests, performance, backup/restore drill, accessibility audi
 | # | Criterion | Phase | Status |
 |---|---|---|---|
 | 1 | Personal information persists | 1 | DB layer VERIFIED (PGlite); hosted UNVERIFIED |
-| 2 | Academic & financial calculations accurate | 2 | money primitives VERIFIED; GPA pending |
+| 2 | Academic & financial calculations accurate | 2 | money primitives + GPA/CGPA VERIFIED (unit tests) |
 | 3 | Modules don't duplicate information | 2 | — |
 | 4 | Inspect & correct memory | 3 | — |
 | 5 | Recommendations explain reasoning | 4 | — |

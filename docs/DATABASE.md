@@ -39,6 +39,8 @@ Postgres on Supabase. One `public` schema with table groups by prefix-free domai
 | `20261120000001_foundation.sql` | profiles, user_preferences, audit_logs, signup trigger, RLS, grants | `supabase/tests/foundation.test.ts` |
 | `20261120000002_revoke_function_execute.sql` | Revoke EXECUTE on trigger functions from anon/authenticated (Supabase default privileges grant it) | `foundation.test.ts` › function privileges |
 
-Both are applied to the hosted project `nexus` (ref `obccfnhcnnlairctgomt`, eu-west-1) on 2026-11-20.
+| `20261120000003_academics.sql` | grade_bands, academic_terms, courses, assessments; composite (id, user_id) FKs; `user_id default auth.uid()` with no client write grant; audit on grades; audit function skips deletes whose owner is already gone | `supabase/tests/academics.test.ts` |
+
+All three are applied to the hosted project `nexus` (ref `obccfnhcnnlairctgomt`, eu-west-1) on 2026-11-20.
 
 **Standard added:** every new function must `revoke execute … from public, anon, authenticated` unless it is meant to be called via RPC.

@@ -52,7 +52,7 @@
 ## D-007 — 4.0 GPA scale, stored as data
 - **Date:** 2026-11-20 · **Status:** active · **Decided by:** Owner (4.0 system); agent (Amber: storage shape)
 - **Context:** Owner's university uses a 4.0 GPA system. Letter-to-point boundaries differ between institutions.
-- **Decision:** `grading_scales` table holds letter → grade point (and optional mark range) per user; GPA = Σ(points × credits) / Σ(credits) for a term, CGPA over all completed terms; computed by a pure TS function mirrored in SQL, both tested on identical cases. The default scale is seeded only after the Owner confirms their school's letter boundaries.
+- **Decision:** `grading_scales` table holds letter → grade point (and optional mark range) per user; GPA = Σ(points × credits) / Σ(credits) for a term, CGPA over all completed terms; computed by a pure TS function (`src/lib/gpa.ts`) in integer hundredths with half-up rounding — no SQL mirror (simplicity; single user). Owner's scale, confirmed 2026-11-20: A 80–100 (4.0), B+ 75 (3.5), B 70 (3.0), C+ 65 (2.5), C 60 (2.0), D+ 55 (1.5), D 50 (1.0), E 45 (0.5), F <45 (0). Bands below A are ASSUMED to step by 5 marks — editable in the app. Seeded per user on first visit to Academics.
 - **Revisit when:** the Owner changes institution or the school changes its scale.
 
 ## D-008 — Vercel hosting

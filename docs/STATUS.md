@@ -1,6 +1,6 @@
 # Status: NEXUS
 
-**Updated:** 2026-11-20 · **Phase:** 5 (Notifications) deployed — awaiting push test on the Owner's phone
+**Updated:** 2026-11-20 · **Phase:** 5 complete (push verified on the Owner's Android phone) — Phase 6 next
 
 **Live:** https://nexus-theta-peach.vercel.app · **Supabase:** `nexus` (`obccfnhcnnlairctgomt`, eu-west-1)
 
@@ -36,12 +36,12 @@
 | Hosted academics check (rolled back) | own_course=1, attach to another user's term=denied, sees only own terms=1 |
 | Auto-deploy of `0b1eabd` | Production Ready in ~34 s; `/life/academics` → 200 |
 | AI assistant (2026-11-20 16:52 UTC) | Owner's message → function 200, Groq `openai/gpt-oss-120b` replied; `ai_requests` row status ok. Earlier 503 traced to secret saved as `API_key` instead of `AI_API_KEY` (fixed by Owner). |
+| Push to Android (2026-11-20) | Owner enabled push, sent test, notification arrived; server shows 1 subscribed device, test notification pushed_at set. |
 | notify job (2026-11-20 17:04 UTC) | triggered in-DB → HTTP 200, 1 user processed, no errors; VAPID keys + cron token present (values never read). Missing/wrong cron token → 403; unauthenticated key request → 401. |
 | Auto-deploy of `604c2bd` | Production Ready; live bundle contains Finances UI; `/life/finances` → 200 |
 | Production URL | `/`, `/settings`, manifest, `sw.js`, icon → 200; security headers present; sign-in screen renders (env vars baked in) |
 
 ## Not verified
-- Push delivery to the Owner's Android phone (needs Settings → Enable push → Send test). `web-push` under Deno's Node compatibility is ASSUMED to work until that test passes.
 - "Repeatedly postponed tasks" (spec §10) not detected — due-date changes aren't tracked yet.
 - Signed-in screens (Home, Academics, Settings) in a real browser on production — the agent can't sign in as the Owner; Academics is covered by a render test only.
 - Mark bands below A (5-mark steps) — ASSUMED from "go on from there"; editable in Academics → Grading scale.

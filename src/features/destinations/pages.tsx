@@ -7,6 +7,7 @@ import { stateOf, useProjects } from '../projects/api';
 import { nextSteps, projectHealth } from '../../lib/projectHealth';
 import { HEALTH_STYLE } from '../projects/healthStyle';
 import { BriefingPanel } from '../briefing/BriefingPanel';
+import { InstallCard } from '../install/InstallCard';
 import { DESTINATIONS } from '../../app/navigation';
 import { useProfile } from '../profile/ProfileProvider';
 import { Panel } from '../../components/ui';
@@ -58,6 +59,7 @@ export function HomePage() {
 
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
+      <InstallCard variant="banner" />
       <BriefingPanel today={todayIn(tz)} currency={profile?.default_currency ?? 'GHS'} />
       <TodayPanel tz={tz} />
       <ProjectsPanel tz={tz} />

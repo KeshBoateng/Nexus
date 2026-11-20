@@ -12,6 +12,7 @@ import { requireSupabase } from '../../lib/supabase';
 import { applyTheme, type ThemePreference } from '../../lib/theme';
 import { Button, Field, Notice, Panel, Select, TextInput } from '../../components/ui';
 import { NotificationSettings } from '../notifications/NotificationSettings';
+import { InstallCard } from '../install/InstallCard';
 
 const CURRENCIES = ['GHS', 'USD', 'EUR', 'GBP', 'NGN', 'KES', 'ZAR'];
 
@@ -36,6 +37,7 @@ export function SettingsPage() {
         <p className="mt-1 text-[15px] text-text-muted">{session?.user.email}</p>
       </header>
       {error && <Notice tone="danger">{error}</Notice>}
+      <InstallCard variant="panel" />
       {profile && <ProfileForm key={profile.id} profile={profile} onSaved={reload} />}
       {preferences && <PreferencesForm key={preferences.user_id} prefs={preferences} onSaved={reload} />}
       <NotificationSettings />

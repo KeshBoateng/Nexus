@@ -1,6 +1,6 @@
 # Status: NEXUS
 
-**Updated:** 2026-11-20 · **Phase:** 6 complete — Phase 7 (hardening) next
+**Updated:** 2026-11-20 · **Phase:** 6 complete + Study Library — Phase 7 (hardening) next
 
 **Live:** https://nexus-theta-peach.vercel.app · **Supabase:** `nexus` (`obccfnhcnnlairctgomt`, eu-west-1)
 
@@ -43,6 +43,7 @@
 | Supabase security advisors | 0 table/function warnings after 0003; only "leaked password protection" (waived, D-009) |
 | Hosted academics check (rolled back) | own_course=1, attach to another user's term=denied, sees only own terms=1 |
 | Auto-deploy of `0b1eabd` | Production Ready in ~34 s; `/life/academics` → 200 |
+| Owner check (2026-11-20) | Intelligence page loads after the fix; Study Library upload + study pack + Learn mode work on the Owner's phone. |
 | AI assistant (2026-11-20 16:52 UTC) | Owner's message → function 200, Groq `openai/gpt-oss-120b` replied; `ai_requests` row status ok. Earlier 503 traced to secret saved as `API_key` instead of `AI_API_KEY` (fixed by Owner). |
 | Push to Android (2026-11-20) | Owner enabled push, sent test, notification arrived; server shows 1 subscribed device, test notification pushed_at set. |
 | notify job (2026-11-20 17:04 UTC) | triggered in-DB → HTTP 200, 1 user processed, no errors; VAPID keys + cron token present (values never read). Missing/wrong cron token → 403; unauthenticated key request → 401. |
@@ -50,7 +51,6 @@
 | Production URL | `/`, `/settings`, manifest, `sw.js`, icon → 200; security headers present; sign-in screen renders (env vars baked in) |
 
 ## Not verified
-- Study Library end to end on the Owner's phone: real PDF/Word/PowerPoint upload, extraction, study pack generation (Groq JSON mode with `openai/gpt-oss-120b` ASSUMED supported). Probed: analyze unauthenticated → 401; bucket not publicly readable; anonymous listing empty.
 - Scanned (image-only) PDFs are stored but not readable — no OCR.
 - Offline mode on a real phone in airplane mode; Weekly review, Radar, Insights signed-in in a real browser (render-tested logic only).
 - `verify-link` against a real opportunity (deployed; needs one saved link).

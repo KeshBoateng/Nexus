@@ -26,6 +26,7 @@ const data: IntelData = {
     mem(3, { content: 'Has asthma', sensitive: true, ai_visible: false }),
   ],
   permissions: { profile: false, memories: true, academics: false, finances: false, goals: false, projects: false, development: false },
+  studyAllowed: false,
 };
 
 let aiEnabled = true;
@@ -69,5 +70,21 @@ describe('IntelligencePage', () => {
     expect(screen.getByRole('checkbox', { name: 'Allow AI to see Personal memory' })).toBeDisabled();
     fireEvent.click(screen.getByText('Preview exactly what would be sent'));
     expect(screen.getByText(/Nothing — AI is off/)).toBeInTheDocument();
+  });
+});
+
+describe('parsePermissions (regression: unknown categories broke the page)', () => {
+  it("ignores categories this screen doesn't know and reads 'study' separately", async () => {
+    const { parsePermissions } = await import('./api');
+    const r = parsePermissions([
+      { category: 'memories', allowed: true },
+      { category: 'study', allowed: true },
+      { category: 'something_new', allowed: true },
+    ]);
+    expect(r.permissions.memories).toBe(true);
+    expect(r.permissions.finances).toBe(false);
+    expect(r.studyAllowed).toBe(true);
+    expect(r.missing).toContain('finances');
+    expect(Object.keys(r.permissions)).not.toContain('something_new');
   });
 });

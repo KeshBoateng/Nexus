@@ -9,6 +9,7 @@ import { useProfile } from '../profile/ProfileProvider';
 import { updatePreferences } from '../profile/api';
 import { fetchHistory } from '../briefing/api';
 import { AskPanel } from './AskPanel';
+import { setStudyPermission } from '../study/api';
 import { InsightsPanel } from '../review/ReviewPages';
 import { CalendarCheck, Radar } from 'lucide-react';
 import {
@@ -450,6 +451,24 @@ function AiAccess({ data, run }: { data: IntelData; run: Run }) {
             </label>
           </li>
         ))}
+        <li className="flex items-center justify-between gap-3 py-3">
+          <div>
+            <p className="text-[15px]">Study materials</p>
+            <p className="text-xs text-text-faint">Text of a file you choose to analyse — never sent to the chat</p>
+          </div>
+          <label className="relative inline-flex cursor-pointer items-center">
+            <input
+              type="checkbox"
+              className="peer sr-only"
+              checked={data.studyAllowed}
+              disabled={!aiEnabled}
+              onChange={(e) => run(() => setStudyPermission(e.target.checked))}
+              aria-label="Allow AI to see Study materials"
+            />
+            <span className="h-6 w-11 rounded-full bg-surface-raised transition-colors peer-checked:bg-accent" />
+            <span className="absolute left-0.5 size-5 rounded-full bg-text transition-transform peer-checked:translate-x-5" />
+          </label>
+        </li>
       </ul>
       <div className="mt-4">
         <button className="text-sm text-text-muted hover:text-text" onClick={() => setPreview((v) => !v)}>

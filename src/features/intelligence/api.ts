@@ -30,11 +30,27 @@ export const MemorySchema = z.object({
 });
 export type Memory = z.infer<typeof MemorySchema>;
 
-const PermSchema = z.object({ category: z.enum(AI_CATEGORIES), allowed: z.boolean() });
+const PermRow = z.object({ category: z.string(), allowed: z.boolean() });
 
 export interface IntelData {
   memories: Memory[];
   permissions: Record<AiCategory, boolean>;
+  /** Study Library permission — separate from chat context categories. */
+  studyAllowed: boolean;
+}
+
+/**
+ * Read permission rows tolerantly: categories this screen doesn't know about (e.g. 'study',
+ * added later) must never break the page. Missing known categories default to not allowed.
+ */
+export function parsePermissions(raw: unknown): { permissions: Record<AiCategory, boolean>; studyAllowed: boolean; missing: AiCategory[] } {
+  const rows = z.array(PermRow).parse(raw);
+  const known = new Set<string>(AI_CATEGORIES);
+  const missing = AI_CATEGORIES.filter((c) => !rows.some((r) => r.category === c));
+  const permissions = Object.fromEntries(
+    AI_CATEGORIES.map((c) => [c, rows.find((r) => r.category === c && known.has(r.category))?.allowed ?? false]),
+  ) as Record<AiCategory, boolean>;
+  return { permissions, studyAllowed: rows.some((r) => r.category === 'study' && r.allowed), missing };
 }
 
 function ok<T>(res: { data: T | null; error: unknown }): T {
@@ -48,15 +64,12 @@ export async function fetchIntel(): Promise<IntelData> {
     sb().from('personal_memories').select('id, content, kind, topic, source, confidence, confirmed_at, expires_on, ai_visible, sensitive, created_at').order('created_at', { ascending: false }),
     sb().from('ai_permissions').select('category, allowed'),
   ]);
-  let rows = z.array(PermSchema).parse(ok(perms));
-  const missing = AI_CATEGORIES.filter((c) => !rows.some((r) => r.category === c));
+  const { permissions, studyAllowed, missing } = parsePermissions(ok(perms));
   if (missing.length) {
     const { error } = await sb().from('ai_permissions').insert(missing.map((category) => ({ category })));
     if (error && error.code !== '23505') throw error;
-    rows = [...rows, ...missing.map((category) => ({ category, allowed: false }))];
   }
-  const permissions = Object.fromEntries(AI_CATEGORIES.map((c) => [c, rows.find((r) => r.category === c)?.allowed ?? false])) as Record<AiCategory, boolean>;
-  return { memories: z.array(MemorySchema).parse(ok(mem)), permissions };
+  return { memories: z.array(MemorySchema).parse(ok(mem)), permissions, studyAllowed };
 }
 
 export const MemoryInput = z.object({

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { cached } from '../../lib/offline';
 import { z } from 'zod';
 import { requireSupabase } from '../../lib/supabase';
 import { addDays, currentStreak } from '../../lib/habits';
@@ -207,7 +208,7 @@ export function useBriefing(today: string, currency: string) {
   const load = useCallback(
     async (refresh = false): Promise<() => void> => {
       try {
-        const d = await getBriefing(today, currency, refresh);
+        const d = refresh ? await getBriefing(today, currency, true) : await cached(`briefing:${today}`, () => getBriefing(today, currency, false));
         return () => {
           setData(d);
           setError(null);

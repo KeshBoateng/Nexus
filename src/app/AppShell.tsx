@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation } from 'react-router';
 import { Bell, Settings } from 'lucide-react';
 import { useUnreadCount } from '../features/notifications/api';
 import { DESTINATIONS } from './navigation';
+import { OfflineBanner } from '../components/OfflineBanner';
 
 /**
  * Mobile: content + fixed bottom bar with the five destinations.
@@ -104,6 +105,7 @@ export function AppShell() {
       </header>
 
       <main id="main" key={pathname} className="mx-auto w-full max-w-3xl px-4 pb-28 pt-6 animate-rise sm:px-6 lg:pb-12 lg:pt-12">
+        <OfflineBanner />
         <Outlet />
       </main>
 

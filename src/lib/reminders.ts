@@ -16,6 +16,7 @@ export interface ReminderInput {
   myTasks: { id: string; title: string; project: string; due_on: string | null; done: boolean }[];
   budgetsOver: { category: string; text: string }[];
   weekDone: number;
+  opportunities?: { id: string; title: string; deadline: string | null; open: boolean }[];
 }
 
 export interface Reminder {
@@ -132,6 +133,22 @@ export function reminders(i: ReminderInput): Reminder[] {
     });
   }
 
+  for (const o of i.opportunities ?? []) {
+    if (!o.open || !o.deadline || o.deadline < date) continue;
+    const left = Math.round((Date.parse(`${o.deadline}T00:00:00Z`) - Date.parse(`${date}T00:00:00Z`)) / 86_400_000);
+    const stage = left <= 1 ? 'd1' : left <= 7 ? 'd7' : null;
+    if (!stage) continue;
+    out.push({
+      dedupe_key: `opportunity:${o.id}:${stage}`,
+      source_key: `opportunity:${o.id}`,
+      category: 'career',
+      priority: stage === 'd1' ? 'high' : 'normal',
+      title: `${o.title} closes ${left === 0 ? 'today' : left === 1 ? 'tomorrow' : `in ${left} days`}`,
+      body: stage === 'd1' ? 'Submit what you have, or decide to let it go.' : 'Plan the application this week.',
+      link: '/radar',
+    });
+  }
+
   for (const b of i.budgetsOver) {
     out.push({
       dedupe_key: `budget:${b.category}:${date.slice(0, 7)}`,
@@ -165,9 +182,9 @@ export function reminders(i: ReminderInput): Reminder[] {
         source_key: null,
         category: 'review',
         priority: 'low',
-        title: 'Weekly check-in',
+        title: 'Weekly review',
         body: `This week you completed ${i.weekDone} task${i.weekDone === 1 ? '' : 's'}${overdue ? ` and ${overdue} ${overdue === 1 ? 'is' : 'are'} overdue` : ''}. Take 10 minutes to plan next week.`,
-        link: '/',
+        link: '/review',
       });
     }
   }
@@ -179,6 +196,7 @@ export function activeSources(i: ReminderInput): Set<string> {
   const s = new Set<string>();
   for (const a of i.assessments) if (!a.completed) s.add(`assessment:${a.id}`);
   for (const t of i.myTasks) if (!t.done) s.add(`task:${t.id}`);
+  for (const o of i.opportunities ?? []) if (o.open) s.add(`opportunity:${o.id}`);
   const { date } = localParts(i.now, i.timeZone);
   if (i.habits.some((h) => h.daily && !h.doneToday)) s.add(`habits:${date}`);
   return s;

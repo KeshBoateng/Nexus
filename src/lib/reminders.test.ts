@@ -94,6 +94,23 @@ describe('reminders', () => {
     expect(keys({ ...input, accountability: false, now: '2026-11-20T07:00:00Z' })).not.toContain('accountability:2026-11-20');
     const sunday = reminders({ ...base, ...input, weekDone: 4, now: '2026-11-22T18:30:00Z' }).find((r) => r.dedupe_key.startsWith('weekly:'))!;
     expect(sunday.body).toContain('completed 4 tasks');
+    expect(sunday.link).toBe('/review');
+  });
+});
+
+describe('opportunity deadlines', () => {
+  it('reminds 7 days and 1 day before, only while still open', () => {
+    const opportunities = [
+      { id: 'o1', title: 'MTN internship', deadline: '2026-11-25', open: true },
+      { id: 'o2', title: 'Scholarship', deadline: '2026-11-21', open: true },
+      { id: 'o3', title: 'Applied already', deadline: '2026-11-21', open: false },
+      { id: 'o4', title: 'Far away', deadline: '2026-12-30', open: true },
+    ];
+    expect(reminders({ ...base, opportunities }).map((r) => [r.dedupe_key, r.title, r.link])).toEqual([
+      ['opportunity:o1:d7', 'MTN internship closes in 5 days', '/radar'],
+      ['opportunity:o2:d1', 'Scholarship closes tomorrow', '/radar'],
+    ]);
+    expect(activeSources({ ...base, opportunities }).has('opportunity:o3')).toBe(false);
   });
 });
 

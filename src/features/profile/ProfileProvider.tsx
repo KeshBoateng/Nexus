@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { cached } from '../../lib/offline';
 import { useAuth } from '../auth/AuthProvider';
 import { applyTheme } from '../../lib/theme';
 import { fetchPreferences, fetchProfile, type Preferences, type Profile } from './api';
@@ -22,7 +23,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const load = useCallback(async (): Promise<() => void> => {
     if (!userId) return () => {};
     try {
-      const [p, prefs] = await Promise.all([fetchProfile(userId), fetchPreferences(userId)]);
+      const [p, prefs] = await Promise.all([cached('profile', () => fetchProfile(userId)), cached('preferences', () => fetchPreferences(userId))]);
       return () => {
         setProfile(p);
         setPreferences(prefs);

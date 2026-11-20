@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { cached } from '../../lib/offline';
 import { z } from 'zod';
 import { requireSupabase } from '../../lib/supabase';
 import { AI_CATEGORIES, type AiCategory } from '../../lib/aiContext';
@@ -105,7 +106,7 @@ export function useIntel() {
   const [error, setError] = useState<string | null>(null);
   const load = useCallback(async (): Promise<() => void> => {
     try {
-      const d = await fetchIntel();
+      const d = await cached('intelligence', fetchIntel);
       return () => {
         setData(d);
         setError(null);

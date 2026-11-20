@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { cached } from '../../lib/offline';
 import { z } from 'zod';
 import { requireSupabase } from '../../lib/supabase';
 import { CATALOG, learningPlan, type Track } from '../../lib/catalog';
@@ -135,7 +136,7 @@ export function useDev() {
   const [error, setError] = useState<string | null>(null);
   const load = useCallback(async (): Promise<() => void> => {
     try {
-      const d = await fetchDev();
+      const d = await cached('development', fetchDev);
       return () => {
         setData(d);
         setError(null);

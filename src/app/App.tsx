@@ -26,6 +26,9 @@ const DevelopmentPage = lazy(() => import('../features/development/DevelopmentPa
 
 const NotificationsPage = lazy(() => import('../features/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })));
 
+const WeeklyReviewPage = lazy(() => import('../features/review/ReviewPages').then((m) => ({ default: m.WeeklyReviewPage })));
+const RadarPage = lazy(() => import('../features/radar/RadarPage').then((m) => ({ default: m.RadarPage })));
+
 const page = (el: React.ReactNode) => <Suspense fallback={<p className="text-text-muted">Loading…</p>}>{el}</Suspense>;
 
 function Gate() {
@@ -52,6 +55,8 @@ function Gate() {
           <Route path="projects" element={page(<ProjectsListPage />)} />
           <Route path="projects/:id" element={page(<ProjectDetailPage />)} />
           <Route path="intelligence" element={page(<IntelligencePage />)} />
+          <Route path="review" element={page(<WeeklyReviewPage />)} />
+          <Route path="radar" element={page(<RadarPage />)} />
           <Route path="notifications" element={page(<NotificationsPage />)} />
           <Route path="settings" element={page(<SettingsPage />)} />
           <Route path="*" element={<Navigate to="/" replace />} />

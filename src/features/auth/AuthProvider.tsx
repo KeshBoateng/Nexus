@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { clearOffline, setOfflineUser } from '../../lib/offline';
 
 interface AuthState {
   session: Session | null;
@@ -22,10 +23,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let active = true;
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
+      setOfflineUser(data.session?.user.id ?? null);
       setSession(data.session);
       setLoading(false);
     });
     const { data } = supabase.auth.onAuthStateChange((event, next) => {
+      setOfflineUser(next?.user.id ?? null);
+      if (event === 'SIGNED_OUT') void clearOffline();
       setSession(next);
       if (event === 'PASSWORD_RECOVERY') setRecovering(true);
     });

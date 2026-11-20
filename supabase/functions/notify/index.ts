@@ -104,7 +104,7 @@ async function runForUser(sb: SupabaseClient, u: { id: string; timezone: string;
   const { date, minutes } = localParts(now, u.timezone);
   const weekStartIso = new Date(Date.parse(`${date}T00:00:00Z`) - (((new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7) * 86_400_000)).toISOString();
 
-  const [courses, assessments, habits, checkins, members, tasks, projects, prefs, budgetRows] = await Promise.all([
+  const [courses, assessments, habits, checkins, members, tasks, projects, prefs, budgetRows, opps] = await Promise.all([
     sb.from('courses').select('id, code, title').eq('user_id', u.id),
     sb.from('assessments').select('id, course_id, title, due_at, completed_at').eq('user_id', u.id),
     sb.from('habits').select('id, name, target_per_week, archived_at').eq('user_id', u.id).is('archived_at', null),
@@ -114,6 +114,7 @@ async function runForUser(sb: SupabaseClient, u: { id: string; timezone: string;
     sb.from('projects').select('id, name').eq('user_id', u.id),
     sb.from('notification_preferences').select('category, in_app, push').eq('user_id', u.id),
     sb.rpc('nexus_budgets_over', { p_user: u.id, p_currency: u.currency, p_month: date.slice(0, 7) }),
+    sb.from('opportunities').select('id, title, deadline, status').eq('user_id', u.id),
   ]);
 
   const courseLabel = new Map((courses.data ?? []).map((c) => [c.id, c.code ?? c.title]));
@@ -136,6 +137,7 @@ async function runForUser(sb: SupabaseClient, u: { id: string; timezone: string;
       category: b.category,
       text: `Spent ${(b.spent_minor / 100).toFixed(2)} of ${(b.limit_minor / 100).toFixed(2)} ${u.currency} this month.`,
     })),
+    opportunities: (opps.data ?? []).map((o) => ({ id: o.id, title: o.title, deadline: o.deadline, open: o.status === 'saved' || o.status === 'applying' })),
     weekDone:
       (assessments.data ?? []).filter((a) => a.completed_at && a.completed_at >= weekStartIso).length +
       (tasks.data ?? []).filter((t) => t.completed_at && t.completed_at >= weekStartIso).length,

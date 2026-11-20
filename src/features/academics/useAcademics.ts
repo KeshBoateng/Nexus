@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { cached } from '../../lib/offline';
 import { ensureDefaultBands, fetchAcademics, type AcademicsData } from './api';
 
 export function useAcademics() {
@@ -7,10 +8,10 @@ export function useAcademics() {
 
   const load = useCallback(async (): Promise<() => void> => {
     try {
-      let d = await fetchAcademics();
+      let d = await cached('academics', fetchAcademics);
       if (d.bands.length === 0) {
         await ensureDefaultBands();
-        d = await fetchAcademics();
+        d = await cached('academics', fetchAcademics);
       }
       const next = d;
       return () => {

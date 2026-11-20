@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { cached } from '../../lib/offline';
 import { Link, useNavigate } from 'react-router';
 import { BellOff, Check, Clock, X } from 'lucide-react';
 import { Notice, Panel } from '../../components/ui';
@@ -21,7 +22,7 @@ export function NotificationsPage() {
 
   const load = useCallback(async () => {
     try {
-      setItems(await fetchNotifications());
+      setItems(await cached('notifications', fetchNotifications));
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load notifications.');
@@ -30,7 +31,7 @@ export function NotificationsPage() {
 
   useEffect(() => {
     let active = true;
-    fetchNotifications()
+    cached('notifications', fetchNotifications)
       .then((n) => active && setItems(n))
       .catch((err) => active && setError(err instanceof Error ? err.message : 'Could not load notifications.'));
     return () => {

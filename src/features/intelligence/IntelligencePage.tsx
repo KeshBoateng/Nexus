@@ -9,6 +9,8 @@ import { useProfile } from '../profile/ProfileProvider';
 import { updatePreferences } from '../profile/api';
 import { fetchHistory } from '../briefing/api';
 import { AskPanel } from './AskPanel';
+import { InsightsPanel } from '../review/ReviewPages';
+import { CalendarCheck, Radar } from 'lucide-react';
 import {
   KIND_LABEL,
   MEMORY_KINDS,
@@ -54,11 +56,23 @@ export function IntelligencePage() {
           <MemoryCentre data={data} run={run} busy={busy} />
           <AiAccess data={data} run={run} />
           <RecHistory />
-          <Panel title="Coming next">
-            <ul className="space-y-2 text-[15px] text-text-muted">
-              <li>Opportunity Radar — Phase 6</li>
-            </ul>
-          </Panel>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Link to="/review" className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 hover:border-accent">
+              <CalendarCheck className="size-5 text-accent" aria-hidden />
+              <span>
+                <span className="block text-[15px] font-medium">Weekly review</span>
+                <span className="block text-sm text-text-muted">Look back, plan forward</span>
+              </span>
+            </Link>
+            <Link to="/radar" className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 hover:border-accent">
+              <Radar className="size-5 text-accent" aria-hidden />
+              <span>
+                <span className="block text-[15px] font-medium">Opportunity Radar</span>
+                <span className="block text-sm text-text-muted">Scholarships, internships, competitions</span>
+              </span>
+            </Link>
+          </div>
+          <InsightsPanel />
         </>
       )}
     </div>

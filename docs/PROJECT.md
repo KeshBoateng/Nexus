@@ -118,7 +118,7 @@ docs/             project memory (Forge)
 ## 10. Autonomy and approvals
 
 - **Standing approvals:** none.
-- **Version control:** the agent may `git init` and stage; **ask before the first commit** (FORGE §6 default). No remote configured.
+- **Version control:** repo https://github.com/KeshBoateng/Nexus, default branch `main`. Owner asked for commits and the push on 2026-11-20; ask again before each future commit/push unless a standing approval is added here.
 - **Spending limits:** £0 / GHS 0. No paid service, no metered AI calls without approval.
 - **Supabase:** creating a project, applying migrations to a hosted project, or changing auth settings needs the Owner's explicit approval.
 

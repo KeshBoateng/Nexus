@@ -105,15 +105,19 @@ export async function exportMyData(userId: string): Promise<Blob> {
     sb.from('project_milestones').select('*').order('created_at'),
     sb.from('meetings').select('*').order('held_on'),
   ]);
-  const [memories, aiPermissions] = await Promise.all([
+  const [memories, aiPermissions, recs, recEvents, recFeedback, briefings] = await Promise.all([
     sb.from('personal_memories').select('*').order('created_at'),
     sb.from('ai_permissions').select('*').order('category'),
+    sb.from('recommendations').select('*').order('created_at'),
+    sb.from('recommendation_events').select('*').order('created_at'),
+    sb.from('recommendation_feedback').select('*').order('created_at'),
+    sb.from('daily_briefings').select('*').order('on_date'),
   ]);
-  const all = [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, savingsGoals, goals, milestones, habits, checkins, projects, members, tasks, pMilestones, meetings, memories, aiPermissions];
+  const all = [profile, preferences, audit, bands, terms, courses, assessments, accounts, transactions, budgets, savingsGoals, goals, milestones, habits, checkins, projects, members, tasks, pMilestones, meetings, memories, aiPermissions, recs, recEvents, recFeedback, briefings];
   for (const r of all) if (r.error) throw r.error;
   const doc = {
     format: 'nexus-export',
-    version: 6,
+    version: 7,
     money_note: 'Amounts ending in _minor are integer minor units (e.g. pesewas for GHS).',
     exported_at: new Date().toISOString(),
     data: {
@@ -138,6 +142,10 @@ export async function exportMyData(userId: string): Promise<Blob> {
       meetings: meetings.data,
       personal_memories: memories.data,
       ai_permissions: aiPermissions.data,
+      recommendations: recs.data,
+      recommendation_events: recEvents.data,
+      recommendation_feedback: recFeedback.data,
+      daily_briefings: briefings.data,
       audit_logs: audit.data,
     },
   };

@@ -6,6 +6,7 @@ import { useRunner } from '../../lib/useRunner';
 import { stateOf, useProjects } from '../projects/api';
 import { nextSteps, projectHealth } from '../../lib/projectHealth';
 import { HEALTH_STYLE } from '../projects/healthStyle';
+import { BriefingPanel } from '../briefing/BriefingPanel';
 import { DESTINATIONS } from '../../app/navigation';
 import { useProfile } from '../profile/ProfileProvider';
 import { Panel } from '../../components/ui';
@@ -70,6 +71,7 @@ export function HomePage() {
 
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
+      <BriefingPanel today={todayIn(tz)} currency={profile?.default_currency ?? 'GHS'} />
       <TodayPanel tz={tz} />
       <ProjectsPanel tz={tz} />
       <HabitsPanel tz={tz} />
@@ -114,7 +116,7 @@ function TodayPanel({ tz }: { tz: string }) {
 
   return (
     <Panel
-      title="Needs attention"
+      title="Upcoming deadlines"
       action={
         <Link to="/life/academics" className="text-sm text-text-muted hover:text-text">
           CGPA <span className="tabular font-semibold text-text">{formatGpa(cgpa)}</span>

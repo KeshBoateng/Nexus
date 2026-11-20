@@ -7,6 +7,7 @@ import { todayIn } from '../../lib/dates';
 import { useRunner, type Run } from '../../lib/useRunner';
 import { useProfile } from '../profile/ProfileProvider';
 import { updatePreferences } from '../profile/api';
+import { fetchHistory } from '../briefing/api';
 import {
   KIND_LABEL,
   MEMORY_KINDS,
@@ -50,9 +51,9 @@ export function IntelligencePage() {
           {data.memories.length === 0 && <Onboarding run={run} busy={busy} />}
           <MemoryCentre data={data} run={run} busy={busy} />
           <AiAccess data={data} run={run} />
+          <RecHistory />
           <Panel title="Coming next">
             <ul className="space-y-2 text-[15px] text-text-muted">
-              <li>Daily briefing and recommendations built from your records — Phase 4</li>
               <li>Learning plans with verified resources — Phase 4</li>
               <li>Opportunity Radar — Phase 6</li>
             </ul>
@@ -60,6 +61,76 @@ export function IntelligencePage() {
         </>
       )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Recommendation history
+// ---------------------------------------------------------------------------
+
+const RATING_LABEL: Record<string, string> = {
+  very_useful: 'Very useful',
+  somewhat_useful: 'Somewhat useful',
+  not_useful: 'Not useful',
+  already_know: 'Already knew',
+};
+
+function RecHistory() {
+  const { profile } = useProfile();
+  const today = todayIn(profile?.timezone ?? 'Africa/Accra');
+  const [rows, setRows] = useState<Awaited<ReturnType<typeof fetchHistory>> | null>(null);
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function load() {
+    setOpen((v) => !v);
+    if (rows) return;
+    try {
+      setRows(await fetchHistory(today));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load history.');
+    }
+  }
+
+  const counts = rows
+    ? {
+        shown: rows.recs.length,
+        done: rows.recs.filter((r) => r.status === 'completed' || r.status === 'applied').length,
+        applied: rows.recs.filter((r) => r.status === 'applied').length,
+        dismissed: rows.recs.filter((r) => r.status === 'dismissed').length,
+      }
+    : null;
+
+  return (
+    <Panel
+      title="Recommendation history"
+      action={
+        <button className="text-sm text-text-muted hover:text-text" onClick={load}>
+          {open ? 'Hide' : 'Show last 90 days'}
+        </button>
+      }
+    >
+      {!open && <p className="text-[15px] text-text-muted">Every recommendation NEXUS has made, why, and what happened.</p>}
+      {error && <Notice tone="danger">{error}</Notice>}
+      {open && counts && (
+        <>
+          <p className="tabular mb-3 text-sm text-text-muted">
+            {counts.shown} shown · {counts.done} done · {counts.applied} applied · {counts.dismissed} not now
+          </p>
+          <ul className="divide-y divide-border">
+            {rows!.recs.map((r) => (
+              <li key={r.id} className="py-2.5">
+                <p className="text-[15px]">{r.title}</p>
+                <p className="text-xs text-text-faint">
+                  {r.shown_on} · {r.status === 'open' ? 'no action' : r.status}
+                  {rows!.ratings.get(r.id) && ` · ${RATING_LABEL[rows!.ratings.get(r.id)!]}`}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </Panel>
   );
 }
 

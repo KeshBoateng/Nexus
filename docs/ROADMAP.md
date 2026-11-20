@@ -19,7 +19,7 @@ Order chosen so each slice is independently usable:
 4. **Projects:** projects, members, tasks with owners, milestones, meetings/notes, health indicators (unassigned/overdue counts).
 5. **Home v1:** deterministic "today" — due soon, overdue, budget status. No AI.
 
-## Phase 3 — Personal context
+## Phase 3 — Personal context  *(DONE 2026-11-20)*
 `personal_memories` with classification (`fact | preference | pattern | temporary | hypothesis`), source and confidence; Memory Centre (view, correct, delete); per-category AI access permissions. Hypotheses can only become facts by explicit user confirmation.
 
 ## Phase 4 — Intelligence
@@ -43,14 +43,14 @@ Security audit, E2E tests, performance, backup/restore drill, accessibility audi
 | 1 | Personal information persists | 1 | DB layer VERIFIED (PGlite); hosted UNVERIFIED |
 | 2 | Academic & financial calculations accurate | 2 | money primitives + GPA/CGPA VERIFIED (unit tests) |
 | 3 | Modules don't duplicate information | 2 | Projects link to courses (no copy); balances computed not stored |
-| 4 | Inspect & correct memory | 3 | — |
+| 4 | Inspect & correct memory | 3 | Built: Memory Centre; DB rules VERIFIED by tests |
 | 5 | Recommendations explain reasoning | 4 | — |
 | 6 | Feedback influences recommendations | 4 | — |
 | 7 | Verified learning links | 4 | — |
 | 8 | Briefings reflect recorded data | 4 | — |
 | 9 | Notifications on Android PWA | 5 | — |
 | 10 | Team responsibility tracking | 2 | VERIFIED (DB tests: same-project assignee FK; rule tests) |
-| 11 | AI failures don't break core | 4 | AI off by default (design) |
+| 11 | AI failures don't break core | 4 | AI off by default; no core feature calls AI |
 | 12 | User information protected | all | RLS tests VERIFIED for Phase 1 tables |
 | 13 | Export and restore | 1/7 | export built; restore pending |
 | 14 | Within free limits | all | no paid dependencies |

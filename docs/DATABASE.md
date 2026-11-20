@@ -47,6 +47,8 @@ Postgres on Supabase. One `public` schema with table groups by prefix-free domai
 
 | `20261120000006_projects.sql` | projects, project_members (one is_me per project), project_tasks (assignee FK over member+project+user, ON DELETE SET NULL (assignee only)), project_milestones, meetings | `supabase/tests/projects.test.ts` |
 
-All six are applied to the hosted project `nexus` (ref `obccfnhcnnlairctgomt`, eu-west-1) on 2026-11-20.
+| `20261120000007_personal_context.sql` | personal_memories (classification + AI-fact/sensitive/expiry rules), ai_permissions (default off); both audited | `supabase/tests/personal_context.test.ts` |
+
+All seven are applied to the hosted project `nexus` (ref `obccfnhcnnlairctgomt`, eu-west-1) on 2026-11-20.
 
 **Standard added:** every new function must `revoke execute … from public, anon, authenticated` unless it is meant to be called via RPC.
